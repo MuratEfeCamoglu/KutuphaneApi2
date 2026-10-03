@@ -3,7 +3,7 @@
 ## İlerleme
 - [x] Adım 0 — Hazırlık
 - [x] Adım 1 — Entity'ler
-- [ ] Adım 2 — DbContext
+- [x] Adım 2 — DbContext
 - [ ] Adım 3 — Migration ve seed
 - [ ] Adım 4 — API dokümantasyonu
 - [ ] Adım 5 — Hata altyapısı
@@ -22,6 +22,7 @@
 ## Kararlar
 - Adım 0: Git deposu `Deneme/` klasöründe ayrıca başlatıldı (`git init -b main`). Üst dizindeki (`C:\Users\Efe`) depoya commit atılmasın diye bu klasör kendi deposuna sahip.
 - Adım 0: 13:34'ten beri çalışan eski şablon uygulaması (`KutuphaneApi.exe`) build'i kilitlediği için durduruldu.
+- Adım 2: 13:33'te başlatılmış `dotnet watch` oturumu uygulamayı sürekli yeniden başlatıp build'i kilitlediği için durduruldu. Geliştirme bitince `dotnet watch` yeniden açılabilir.
 
 ## Çözülemeyen Sorunlar
 Yok
@@ -54,6 +55,25 @@ Yok
 - `AuthorId` ile `Author` özelliği arasındaki fark nedir?
 - Ödüncün "Overdue" olduğunu neden bir `Status` sütununda saklamıyoruz?
 - Koleksiyonları neden `new List<Book>()` ile başlatıyoruz?
+
+### Adım 2 — DbContext
+**Ne yapıldı:** EF Core SQLite ve Design paketleri eklendi. `AppDbContext` yazıldı; tablo kuralları `Data/Configurations/` altında her entity için ayrı bir sınıfta Fluent API ile tanımlandı. Bağlantı cümlesi `appsettings.json`'a kondu ve DbContext `Extensions/ServiceCollectionExtensions.cs` içinde DI'a kaydedildi.
+**Yeni kavramlar:**
+- *DbContext* (`Data/AppDbContext.cs`): Veritabanı oturumu. `DbSet<T>` özellikleri tablolardır; `context.Books.Where(...)` yazdığında EF Core bunu SQL'e çevirir.
+- *Primary constructor* (`AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)`): C# 12 ile gelen kısa kurucu yazımı.
+- *IEntityTypeConfiguration&lt;T&gt;* (`Data/Configurations/BookConfiguration.cs`): Bir entity'nin tablo kurallarını (uzunluk, index, ilişki) ayrı bir sınıfta toplar. `ApplyConfigurationsFromAssembly` hepsini otomatik bulur.
+- *Benzersiz index* (`HasIndex(...).IsUnique()`): ISBN, e-posta ve kategori adı tekrar edemez; veritabanı da bunu garanti eder.
+- *DeleteBehavior.Restrict*: İlişkili kayıt varken üst kaydın silinmesini engeller. Varsayılan `Cascade` olsaydı yazarı silmek tüm kitaplarını da silerdi.
+- *Collation NOCASE*: SQLite'ın karşılaştırmayı harf büyüklüğüne duyarsız yapması. `ali@x.com` ile `ALI@x.com` aynı e-posta sayılır.
+- *ValueConverter* (`Data/UtcDateTimeConverter.cs`): SQLite tarihi metin olarak saklar ve "bu UTC'ydi" bilgisini kaybeder. Dönüştürücü okurken `DateTimeKind.Utc` işaretler, böylece JSON çıktısında tarihler `...Z` ile biter.
+- *Dependency Injection (DI)*: `AddDbContext` ile kaydedilen `AppDbContext`, her HTTP isteği için bir kez oluşturulur (scoped) ve ihtiyaç duyan sınıfa kurucu üzerinden verilir.
+**Neden böyle:** Kurallar Data Annotations (`[MaxLength]`) yerine Fluent API ile yazıldı; entity'ler sade kalır ve ilişki/silme davranışı gibi annotation ile ifade edilemeyen ayarlar da aynı yerde durur. Restrict seçildi çünkü iş kuralları 7 ve 8 silmeyi engellemeyi istiyor; servis bu kuralları kontrol edip 409 dönecek, veritabanı ise son güvenlik ağı.
+**Karşılaşılan hatalar:** Build yine `MSB3021 / dosya kilitli` hatası verdi. Kök neden: arka planda açık bir `dotnet watch` oturumu vardı; her dosya değişikliğinde uygulamayı yeniden başlatıp `.exe` dosyasını kilitliyordu. Öldürülen uygulamayı watch tekrar başlattığı için tek çözüm watch sürecinin kendisini durdurmaktı.
+**Bilerek boz:** `BookConfiguration` içindeki `OnDelete(DeleteBehavior.Restrict)` satırını `Cascade` yap. Adım 3'te migration ürettiğinde migration dosyasında ne değişir?
+**Kendini kontrol et:**
+- Bağlantı cümlesini neden koda değil `appsettings.json`'a yazıyoruz?
+- `UseCollation("NOCASE")` olmasaydı aynı e-postayla iki üye eklenebilir miydi?
+- DbContext neden "scoped" yaşam süresiyle kaydedilir?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
