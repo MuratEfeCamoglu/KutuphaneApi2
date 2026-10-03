@@ -221,4 +221,52 @@ Content-Type: application/json
 ### Aktif ödüncü olan üyeyi sil → 409
 DELETE {{KutuphaneApi_HostAddress}}/api/members/1
 
+### ===== Loans =====
+# Seed verisi: üye 1'in aktif ödüncü var (kitap 3), üye 2'nin gecikmiş ödüncü var (kitap 5).
+
+### Ödünç ver → 201 (son iade tarihi = bugün + 14 gün)
+POST {{KutuphaneApi_HostAddress}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 7,
+  "memberId": 3
+}
+
+### Tek ödünç
+GET {{KutuphaneApi_HostAddress}}/api/loans/1
+
+### Gecikmiş ödüncü olan üye → 409 (kural 5)
+POST {{KutuphaneApi_HostAddress}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 7,
+  "memberId": 2
+}
+
+### Aynı kitabı iade etmeden tekrar → 409 (kural 4)
+POST {{KutuphaneApi_HostAddress}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 3,
+  "memberId": 1
+}
+
+### Müsait kopyası olmayan kitap → 409 (kural 3; "Ben, Robot" 1 kopya, yukarıda başkası almadıysa önce bir üyeye verin)
+POST {{KutuphaneApi_HostAddress}}/api/loans
+Content-Type: application/json
+
+{
+  "bookId": 8,
+  "memberId": 1
+}
+
+### İade al → 204
+POST {{KutuphaneApi_HostAddress}}/api/loans/2/return
+
+### Zaten iade edilmiş ödünç → 409 (kural 6)
+POST {{KutuphaneApi_HostAddress}}/api/loans/1/return
+
 ###

@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IBookService, BookService>();
         services.AddScoped<IMemberService, MemberService>();
+        services.AddScoped<ILoanService, LoanService>();
 
         return services;
     }

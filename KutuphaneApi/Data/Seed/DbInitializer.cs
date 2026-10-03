@@ -20,7 +20,7 @@ public static class DbInitializer
             return;
         }
 
-        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        var now = scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow().UtcDateTime;
 
         var novel = new Category { Name = "Roman" };
         var classic = new Category { Name = "Klasik" };

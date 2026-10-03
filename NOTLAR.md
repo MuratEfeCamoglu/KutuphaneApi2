@@ -13,7 +13,7 @@
 - [x] Adım 9 — Books
 - [x] Adım 10 — Kitap listesi
 - [x] Adım 11 — Members
-- [ ] Adım 12 — Ödünç ve iade
+- [x] Adım 12 — Ödünç ve iade
 - [ ] Adım 13 — Ödünç sorguları
 - [ ] Adım 14 — Unit testler
 - [ ] Adım 15 — Integration testler
@@ -28,6 +28,8 @@
 - Adım 8: Kategori adı ve e-posta benzersizliği SQLite `NOCASE` ile sağlanıyor; bu sadece ASCII harflerde büyük/küçük harf duyarsız ("KLASİK" ≠ "Klasik"). Normalize sütun eklemek sadelik için yapılmadı.
 - Adım 9: İstek gövdesindeki `authorId`/`categoryIds` bulunamazsa 404 (`NotFoundException`) dönülüyor; yeni bir exception türü eklememek için mevcut kalıp kullanıldı.
 - Adım 9: Loan ilişkileri Restrict kaldı; iade edilmiş ödünç geçmişi olan kitap/üye silinirken geçmiş servis tarafından aynı transaction'da açıkça siliniyor (kural 7 sadece iade edilmemiş ödüncü yasaklıyor).
+- Adım 12: `GET /api/loans/{id}` Adım 13 yerine burada yazıldı; `POST /api/loans` yanıtındaki `CreatedAtAction` bu endpoint'e ihtiyaç duyuyor.
+- Adım 12: İade (`POST /api/loans/{id}/return`) mevcut kaydı güncellediği için 204 dönüyor (CLAUDE.md'deki güncelleme kuralı).
 
 ## Çözülemeyen Sorunlar
 Yok
@@ -227,6 +229,23 @@ Yok
 - `CreatedAt` için neden `DateTime.UtcNow` yerine `TimeProvider` kullanılıyor?
 - `When(...)` olmasaydı telefonsuz bir üye eklenebilir miydi?
 - `AYSE.YILMAZ@example.com` neden `ayse.yilmaz@example.com` ile çakışıyor?
+
+### Adım 12 — Ödünç ve iade
+**Ne yapıldı:** `POST /api/loans` (ödünç ver), `POST /api/loans/{id}/return` (iade al) ve `CreatedAtAction` için gereken `GET /api/loans/{id}` yazıldı. İş kuralları 1–6 `LoanService`'te; kural 7 ve 9 önceki adımlarda kitap/üye servislerinde vardı. Her ihlal 409 dönüyor. Seed artık DI'daki `TimeProvider`'ı kullanıyor.
+**Yeni kavramlar:**
+- *Anonim tip projeksiyonu* (`LoanService.CreateAsync`): `Select(b => new { b.StockCount, ActiveLoanCount = ... })` sadece kural için gereken iki değeri tek sorguda getirir; DTO tanımlamaya gerek yok çünkü metodun dışına çıkmıyor.
+- *Bir sorgu, birden çok kural*: Üyenin aktif ödünçleri (`BookId`, `DueDate`) bir kez okunur; kural 2 (sayı), 4 (aynı kitap) ve 5 (gecikme) bu küçük liste üzerinde bellekte kontrol edilir. Üç ayrı `AnyAsync`/`CountAsync` yerine tek sorgu.
+- *Adlandırılmış sabitler* (`LoanPeriodDays = 14`, `MaxActiveLoansPerMember = 3`): Kod `AddDays(14)` yerine `AddDays(LoanPeriodDays)` diye okunur ve hata mesajı da aynı sabitten üretilir. `public` oldukları için testler de bu sabitleri kullanabilir.
+- *Eylem endpoint'i* (`POST /api/loans/{id}/return`): "İade et" bir CRUD işlemi değil, bir eylemdir. REST'te bunu alt kaynak adresine `POST` olarak modellemek yaygındır. `PUT /api/loans/{id}` ile `returnDate` göndermek de mümkündü ama istemciye tarih yazdırmak istemedik.
+- *Tek "şimdi"* (`var now = ...`): İstek boyunca saat bir kez okunur. Kural kontrolü ve `LoanDate` aynı ana dayanır.
+**Neden böyle:** Kuralların kontrol sırası, en anlamlı hata mesajını verecek şekilde seçildi: önce kayıtların varlığı (404), sonra üyeyle ilgili engeller (gecikme, limit, aynı kitap), en son kitabın müsaitliği. Örneğin gecikmiş üyeye "kitap müsait değil" demek yanıltıcı olurdu. İade 204 dönüyor çünkü CLAUDE.md'ye göre mevcut kaydı güncelleyen işlemler 204; güncel hali `GET /api/loans/{id}` ile okunabilir. `GET /api/loans/{id}` aslında Adım 13'ün listesindeydi ama `CreatedAtAction` ona ihtiyaç duyduğu için burada yazıldı (bkz. Kararlar).
+**Karşılaşılan hatalar:** Yok. Adım 2'deki `UtcDateTimeConverter`'ın `DateTime?` (`ReturnDate`) için de çalıştığı burada doğrulandı; yanıtta `"returnDate": "...Z"` görülüyor.
+**Bilerek boz:** Kural 5'in `if` bloğunu kural 3'ün altına taşı. Gecikmiş ödüncü olan üye, müsait kopyası olmayan bir kitabı istediğinde hangi mesajı alır? Hangisi kullanıcı için daha doğru?
+**Kendini kontrol et:**
+- `DueDate < now` karşılaştırmasında neden her iki taraf da UTC olmalı?
+- Kural 3'te neden `book.StockCount <= 0` değil de `StockCount - ActiveLoanCount <= 0` kontrol ediliyor?
+- `memberActiveLoans` listesini bellekte kontrol etmek neden burada N+1 sayılmaz?
+**Kendin yazmayı dene:** `POST /api/loans/{id}/extend` endpoint'i ekle: gecikmemiş aktif ödüncün `DueDate`'ini 7 gün uzatsın; gecikmişse 409 dönsün.
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
