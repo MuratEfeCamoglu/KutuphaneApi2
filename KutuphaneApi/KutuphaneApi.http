@@ -79,4 +79,80 @@ Content-Type: application/json
 ### Kategori sil → 204
 DELETE {{KutuphaneApi_HostAddress}}/api/categories/4
 
+### ===== Books =====
+
+### Tüm kitaplar
+GET {{KutuphaneApi_HostAddress}}/api/books
+
+### Kitap detayı (yazar, kategoriler, müsait kopya)
+GET {{KutuphaneApi_HostAddress}}/api/books/1
+
+### Kitap ekle → 201
+POST {{KutuphaneApi_HostAddress}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Beyaz Kale",
+  "isbn": "9789750508479",
+  "publishedYear": 1985,
+  "stockCount": 2,
+  "authorId": 1,
+  "categoryIds": [1]
+}
+
+### Aynı ISBN → 409
+POST {{KutuphaneApi_HostAddress}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Kopya",
+  "isbn": "9789750507977",
+  "publishedYear": 2002,
+  "stockCount": 1,
+  "authorId": 1,
+  "categoryIds": []
+}
+
+### Geçersiz kitap (ISBN 13 hane değil, stok negatif) → 400
+POST {{KutuphaneApi_HostAddress}}/api/books
+Content-Type: application/json
+
+{
+  "title": "",
+  "isbn": "123",
+  "publishedYear": 1985,
+  "stockCount": -1,
+  "authorId": 1,
+  "categoryIds": []
+}
+
+### Kitap güncelle → 204
+PUT {{KutuphaneApi_HostAddress}}/api/books/1
+Content-Type: application/json
+
+{
+  "title": "Kar",
+  "isbn": "9789750507977",
+  "publishedYear": 2002,
+  "stockCount": 5,
+  "authorId": 1,
+  "categoryIds": [1, 2]
+}
+
+### Stoğu ödünçteki kopya sayısının altına düşür → 409 (kitap 5'te 1 aktif ödünç var)
+PUT {{KutuphaneApi_HostAddress}}/api/books/5
+Content-Type: application/json
+
+{
+  "title": "1984",
+  "isbn": "9789750718533",
+  "publishedYear": 1949,
+  "stockCount": 0,
+  "authorId": 3,
+  "categoryIds": [1, 2, 3]
+}
+
+### Ödünçteki kitabı sil → 409
+DELETE {{KutuphaneApi_HostAddress}}/api/books/5
+
 ###

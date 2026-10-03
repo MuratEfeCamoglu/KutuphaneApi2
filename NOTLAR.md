@@ -10,7 +10,7 @@
 - [x] Adım 6 — Authors
 - [x] Adım 7 — Doğrulama
 - [x] Adım 8 — Categories
-- [ ] Adım 9 — Books
+- [x] Adım 9 — Books
 - [ ] Adım 10 — Kitap listesi
 - [ ] Adım 11 — Members
 - [ ] Adım 12 — Ödünç ve iade
@@ -26,6 +26,8 @@
 - Adım 7: `TimeProvider` DI kaydı Adım 12 yerine burada yapıldı; yazar doğum yılının gelecekte olmaması kuralı "bugün"ü bilmeyi gerektiriyor ve `DateTime.UtcNow` kullanmak kod kurallarına aykırı.
 - Adım 7: Doğrulama hata anahtarları C# özellik adıyla (`FirstName`) döner; camelCase'e çevirmek ek kod gerektirdiği için sade tutuldu.
 - Adım 8: Kategori adı ve e-posta benzersizliği SQLite `NOCASE` ile sağlanıyor; bu sadece ASCII harflerde büyük/küçük harf duyarsız ("KLASİK" ≠ "Klasik"). Normalize sütun eklemek sadelik için yapılmadı.
+- Adım 9: İstek gövdesindeki `authorId`/`categoryIds` bulunamazsa 404 (`NotFoundException`) dönülüyor; yeni bir exception türü eklememek için mevcut kalıp kullanıldı.
+- Adım 9: Loan ilişkileri Restrict kaldı; iade edilmiş ödünç geçmişi olan kitap/üye silinirken geçmiş servis tarafından aynı transaction'da açıkça siliniyor (kural 7 sadece iade edilmemiş ödüncü yasaklıyor).
 
 ## Çözülemeyen Sorunlar
 Yok
@@ -175,6 +177,24 @@ Yok
 - `excludeId` parametresi olmasaydı bir kategoriyi kendi adıyla güncellemek ne döndürürdü?
 - Unique index varken servisteki kontrol neden gerekli?
 - `DELETE /api/categories/1` kitapları da siler mi?
+
+### Adım 9 — Books
+**Ne yapıldı:** Kitap CRUD'u yazıldı. Detay yanıtı yazarı (`author`), kategorileri (`categories`) ve hesaplanan müsait kopya sayısını (`availableCopies`) içeriyor. Listede daha hafif bir `BookListItemDto` kullanılıyor. İş kuralları: ISBN benzersiz (409), stok aktif ödünç sayısının altına inemez (kural 9 → 409), iade edilmemiş ödüncü olan kitap silinemez (kural 7 → 409). Olmayan yazar veya kategori Id'si 404 dönüyor.
+**Yeni kavramlar:**
+- *İç içe DTO* (`Dtos/Books/BookDetailDto.cs`): `BookAuthorDto` ve `BookCategoryDto` sadece kitabın ihtiyaç duyduğu alanları taşır; `CategoryDto`'yu (içinde `BookCount` var) burada tekrar kullanmadık.
+- *Projeksiyonda koleksiyon* (`Mappings/BookMappings.cs`): `b.Categories.Select(...).ToList()` ve `b.Loans.Count(l => l.ReturnDate == null)` tek bir SQL sorgusuna çevrilir (JOIN + COUNT alt sorgusu). Uygulama loglarında `GET /api/books/5` için tek bir `SELECT` görebilirsin.
+- *Include* (`BookService.UpdateAsync`): Okuma sorgusunda `Select` yeterliyken, güncellemede mevcut kategori listesini değiştireceğimiz için entity'yi ilişkisiyle birlikte yükleriz. `Categories.Clear()` + `Add` yapınca EF Core ara tabloda gereken `DELETE`/`INSERT`'leri kendisi üretir.
+- *`Contains` → `IN`* (`GetCategoriesAsync`): Birden çok Id'yi tek sorguda getirir. `Except` ile istenen ama bulunamayan Id tespit edilir.
+- *Regex ve RuleForEach* (`Validators/CreateBookRequestValidator.cs`): `Matches(@"^\d{13}$")` biçim kontrolü yapar, `RuleForEach` listedeki her elemana kural uygular.
+- *Tek transaction'da birden çok değişiklik* (`BookService.DeleteAsync`): Ödünç geçmişini `RemoveRange` ile silip kitabı `Remove` ettik; ikisi aynı `SaveChangesAsync` içinde, yani ya hepsi olur ya hiçbiri.
+**Neden böyle:** Gövdede verilen `authorId` bulunamazsa 404 dönülüyor (mevcut `NotFoundException` yeniden kullanıldı; alternatif 400/422 olabilirdi, bkz. Kararlar). Loan → Book ilişkisi Restrict olduğundan, iade edilmiş geçmişi olan kitabı silmek veritabanı hatasıyla (500) sonuçlanırdı; bu yüzden servis geçmişi açıkça siliyor. Create ve Update validator'ları bilerek ayrı ve tekrarlı: biri değişirse diğeri etkilenmez, okuması kolay.
+**Karşılaşılan hatalar:** Yok. Duman testi sırasında logda sadece `Failed to determine the https port for redirect` uyarısı var; `http` profiliyle çalıştırınca HTTPS portu olmadığı için `UseHttpsRedirection` yönlendirme yapamaz. Zararsızdır; `https` profiliyle çalıştırınca kaybolur.
+**Bilerek boz:** `BookService.DeleteAsync` içinde `RemoveRange(returnedLoans)` satırını sil ve iade edilmiş ödünç geçmişi olan `DELETE /api/books/1` isteğini gönder. Hangi durum kodu ve logda hangi SQLite hatası (`FOREIGN KEY constraint failed`) çıkıyor?
+**Kendini kontrol et:**
+- `availableCopies` neden veritabanında bir sütun değil?
+- `GetByIdAsync` içinde neden `Include` kullanmadık da `UpdateAsync` içinde kullandık?
+- `categoryIds: [1, 2, 2]` gönderilirse ne olur, neden?
+**Kendin yazmayı dene:** `BookListItemDto`'ya kategori adlarını virgülle birleştiren bir `Categories` alanı ekle (ipucu: `string.Join` SQL'e çevrilemez; listeyi `IReadOnlyList<string>` olarak döndür).
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
