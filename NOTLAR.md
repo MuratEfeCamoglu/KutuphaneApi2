@@ -30,6 +30,7 @@
 - Adım 9: Loan ilişkileri Restrict kaldı; iade edilmiş ödünç geçmişi olan kitap/üye silinirken geçmiş servis tarafından aynı transaction'da açıkça siliniyor (kural 7 sadece iade edilmemiş ödüncü yasaklıyor).
 - Adım 12: `GET /api/loans/{id}` Adım 13 yerine burada yazıldı; `POST /api/loans` yanıtındaki `CreatedAtAction` bu endpoint'e ihtiyaç duyuyor.
 - Adım 12: İade (`POST /api/loans/{id}/return`) mevcut kaydı güncellediği için 204 dönüyor (CLAUDE.md'deki güncelleme kuralı).
+- Ek (Web arayüzü): CLAUDE.md'de frontend kapsam dışıydı; kullanıcı açıkça istediği için eklendi. Yeni proje açmamak ve CORS gerektirmemek için `KutuphaneApi/wwwroot` içinde, derleme adımı olmayan düz HTML/CSS/JS olarak yazıldı.
 
 ## Çözülemeyen Sorunlar
 Yok
@@ -317,6 +318,21 @@ Yok
 **Kendini kontrol et:**
 - Bu projede bir isteğin `POST /api/loans`'tan veritabanına ve geri hata yanıtına kadar izlediği yolu sırayla söyleyebilir misin?
 - Hangi değerler hesaplanıyor, hangileri saklanıyor? Neden?
+
+### Ek — Web arayüzü
+**Ne yapıldı:** `KutuphaneApi/wwwroot/` altına API'ye bağlı bir kütüphane arayüzü eklendi ve `Program.cs`'e `UseDefaultFiles()` ile `UseStaticFiles()` satırları kondu. Uygulama açıkken `http://localhost:5041/` adresi arayüzü açar. Ekranlar: Kitaplar (arama, filtre, sayfalama, ekle/düzenle/sil, ödünç ver), Ödünçler (ödünç ver, iade al, durum filtresi), Üyeler (üyenin ödünçleri dahil), Yazarlar, Kategoriler ve **Kural testleri**. Sağdaki **İstek defteri** her isteğin yöntemini, adresini ve durum kodunu gösterir; satıra tıklayınca istek ve yanıt gövdesi açılır.
+**Yeni kavramlar:**
+- *Statik dosyalar* (`Program.cs`): `UseStaticFiles` wwwroot klasöründeki dosyaları olduğu gibi sunar. `UseDefaultFiles` ise `/` isteğini `index.html`'e çevirir; bu yüzden ondan önce gelmelidir.
+- *Aynı köken (same origin)*: Arayüz ve API aynı adresten (`localhost:5041`) geldiği için tarayıcı istekleri engellemez; CORS ayarına gerek yok. Arayüz ayrı bir sunucuda (örn. React dev server, port 5173) olsaydı API'ye `AddCors` eklemek gerekirdi.
+- *fetch ve ProblemDetails* (`wwwroot/js/api.js`): Tüm istekler tek bir `request` fonksiyonundan geçer. Hata yanıtındaki `detail` ve `errors` alanları okunup ekranda gösterilir; 400 hataları formdaki ilgili alanın altına yazılır (`ui.js` → `showFieldErrors`).
+- *Kural testleri sayfası* (`wwwroot/js/tests.js`): 12 senaryo canlı API'ye istek atar ve beklenen durum kodunu gelenle karşılaştırır. Her senaryo kendi test kayıtlarını oluşturur ve sonunda siler. Bu sayfa xUnit testlerinin yerine geçmez; aynı kuralları gözle görmeni sağlar.
+**Neden böyle:** React/Vue gibi bir framework derleme adımı (npm, node_modules) getirirdi ve odağı backend'den uzaklaştırırdı. Formlarda `novalidate` var; tarayıcı kendi kontrolünü yapmaz, böylece geçersiz e-posta gibi hatalar API'ye ulaşır ve FluentValidation'ın 400 yanıtını görürsün. Kural 5 tarayıcıdan test edilirken sunucunun saati ileri sarılamadığı için seed verisindeki gecikmiş ödünç (Mehmet) kullanılır; seed yoksa senaryo "Atlandı" olarak işaretlenir.
+**Karşılaşılan hatalar:** Doğrulama sırasında kullanıcının kendi açtığı uygulama 5041 portunu ve `bin/` klasörünü kullanıyordu. Onu durdurmak yerine ikinci bir kopya ayrı bir çıktı klasöründen, 5099 portunda ve ayrı bir veritabanıyla çalıştırıldı. Bağlantı cümlesi ilk denemede komut satırı argümanı olarak verildi; içindeki boşluk (`Data Source=...`) argümanı ikiye böldü ve SQLite bağlantı cümlesini çözümleyemedi. Değer `ConnectionStrings__DefaultConnection` ortam değişkeniyle verilince çalıştı. (İki alt çizgi `__`, ortam değişkenlerinde `:` yerine geçer.)
+**Bilerek boz:** `Program.cs`'te `app.UseDefaultFiles();` ile `app.UseStaticFiles();` satırlarının yerini değiştir. `http://localhost:5041/` ne döner, neden?
+**Kendini kontrol et:**
+- Arayüz ile API farklı portlarda olsaydı tarayıcı hangi hatayı verirdi?
+- İstek defterinde 409 gördüğün bir satırın yanıt gövdesindeki `detail` alanı nereden geliyor?
+**Kendin yazmayı dene:** Kategoriler ekranına kategori adına tıklayınca o kategorinin kitaplarını gösteren bir bağlantı ekle (ipucu: `GET /api/books?categoryId=...`).
 
 ## Son Rapor
 

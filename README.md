@@ -24,6 +24,7 @@ dotnet run --project KutuphaneApi        # http://localhost:5041
 
 Development ortamında uygulama açılırken migration'lar uygulanır ve `KutuphaneApi/kutuphane.db` örnek veriyle oluşturulur. Veriyi sıfırlamak için bu dosyayı silip uygulamayı yeniden başlatman yeterli.
 
+- **Kütüphane arayüzü: http://localhost:5041/** (kitaplar, ödünçler, üyeler, yazarlar, kategoriler ve canlı kural testleri)
 - API arayüzü: http://localhost:5041/scalar
 - OpenAPI dokümanı: http://localhost:5041/openapi/v1.json
 - Hazır istekler: [`KutuphaneApi/KutuphaneApi.http`](KutuphaneApi/KutuphaneApi.http) (VS Code REST Client, Visual Studio veya Rider ile çalıştırılabilir)
@@ -83,7 +84,8 @@ KutuphaneApi/
 ├── Validators/       FluentValidation kuralları
 ├── Common/           Özel exception'lar, sayfalama
 ├── Infrastructure/   GlobalExceptionHandler
-└── Extensions/       DI kayıtları
+├── Extensions/       DI kayıtları
+└── wwwroot/          Web arayüzü (HTML + CSS + JavaScript, derleme adımı yok)
 KutuphaneApi.Tests/
 ├── Unit/
 └── Integration/

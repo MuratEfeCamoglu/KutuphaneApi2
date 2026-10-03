@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kütüphane Masası</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="drawer" aria-label="Bölümler">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <div>
+          <strong>Kütüphane Masası</strong>
+          <small>KutuphaneApi arayüzü</small>
+        </div>
+      </div>
+      <nav>
+        <button class="drawer-tab" data-view="books">Kitaplar</button>
+        <button class="drawer-tab" data-view="loans">Ödünçler</button>
+        <button class="drawer-tab" data-view="members">Üyeler</button>
+        <button class="drawer-tab" data-view="authors">Yazarlar</button>
+        <button class="drawer-tab" data-view="categories">Kategoriler</button>
+        <button class="drawer-tab drawer-tab--tests" data-view="tests">Kural testleri</button>
+      </nav>
+      <p class="drawer-note">Her işlem gerçek API'ye gider. Sağdaki defterde isteği ve dönen durum kodunu görürsün.</p>
+    </aside>
+
+    <main id="view" class="view" tabindex="-1"></main>
+
+    <aside class="ledger" aria-label="İstek defteri">
+      <header class="ledger-head">
+        <h2>İstek defteri</h2>
+        <button class="link-button" id="ledger-clear">Temizle</button>
+      </header>
+      <ol id="ledger-list" class="ledger-list"></ol>
+    </aside>
+  </div>
+
+  <dialog id="dialog" class="dialog"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -33,6 +33,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// wwwroot/ klasöründeki arayüz dosyalarını sunar; "/" adresi wwwroot/index.html'i açar.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
 
 app.Run();
