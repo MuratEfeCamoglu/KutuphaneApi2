@@ -2,7 +2,7 @@
 
 ## İlerleme
 - [x] Adım 0 — Hazırlık
-- [ ] Adım 1 — Entity'ler
+- [x] Adım 1 — Entity'ler
 - [ ] Adım 2 — DbContext
 - [ ] Adım 3 — Migration ve seed
 - [ ] Adım 4 — API dokümantasyonu
@@ -39,6 +39,21 @@ Yok
 **Kendini kontrol et:**
 - `.slnx` dosyası olmasaydı `dotnet build` hangi klasörde çalıştırılmalıydı?
 - Veritabanı dosyasını neden depoya koymuyoruz?
+
+### Adım 1 — Entity'ler
+**Ne yapıldı:** `Entities/` klasörüne beş sınıf eklendi: `Author`, `Category`, `Book`, `Member`, `Loan`. Her biri bir tabloyu temsil eder; aralarındaki ilişkiler navigation property'lerle kuruldu.
+**Yeni kavramlar:**
+- *Entity*: EF Core'un tabloya çevirdiği düz C# sınıfı. `Id` adlı özellik otomatik olarak birincil anahtar (primary key) kabul edilir (`Entities/Author.cs`).
+- *Navigation property*: `Book.Author` veya `Author.Books` gibi, ilişkili kayda nesne olarak erişmeyi sağlayan özellik. Veritabanında sütun değildir; sütun olan `AuthorId`'dir (foreign key) (`Entities/Book.cs`).
+- *Skip navigation (çoka-çok)*: `Book.Categories` ve `Category.Books` iki tarafta da koleksiyon olduğu için EF Core `BookCategory` ara tablosunu kendisi üretecek; ayrıca entity yazmadık.
+- *`= null!`*: Nullable açıkken derleyici "bu referans null kalabilir" uyarısı verir. EF Core bu alanı dolduracağı için `null!` ile uyarıyı bilinçli olarak kapatıyoruz (bu bir bastırma değil, "null-forgiving" operatörüdür).
+**Neden böyle:** Müsait kopya sayısı ve ödünç durumu (Active/Overdue/Returned) entity'de alan olarak yok; bunlar her sorguda hesaplanacak. Saklanan değer zamanla gerçek durumdan sapabilir, hesaplanan değer sapmaz.
+**Karşılaşılan hatalar:** Yok.
+**Bilerek boz:** `Book.Author` satırındaki `= null!` kısmını sil ve build al. Hangi uyarı (CS8618) çıkıyor ve neden?
+**Kendini kontrol et:**
+- `AuthorId` ile `Author` özelliği arasındaki fark nedir?
+- Ödüncün "Overdue" olduğunu neden bir `Status` sütununda saklamıyoruz?
+- Koleksiyonları neden `new List<Book>()` ile başlatıyoruz?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
