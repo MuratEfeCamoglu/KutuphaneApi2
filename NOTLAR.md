@@ -8,7 +8,7 @@
 - [x] Adım 4 — API dokümantasyonu
 - [x] Adım 5 — Hata altyapısı
 - [x] Adım 6 — Authors
-- [ ] Adım 7 — Doğrulama
+- [x] Adım 7 — Doğrulama
 - [ ] Adım 8 — Categories
 - [ ] Adım 9 — Books
 - [ ] Adım 10 — Kitap listesi
@@ -23,6 +23,8 @@
 - Adım 0: Git deposu `Deneme/` klasöründe ayrıca başlatıldı (`git init -b main`). Üst dizindeki (`C:\Users\Efe`) depoya commit atılmasın diye bu klasör kendi deposuna sahip.
 - Adım 0: 13:34'ten beri çalışan eski şablon uygulaması (`KutuphaneApi.exe`) build'i kilitlediği için durduruldu.
 - Adım 2: 13:33'te başlatılmış `dotnet watch` oturumu uygulamayı sürekli yeniden başlatıp build'i kilitlediği için durduruldu. Geliştirme bitince `dotnet watch` yeniden açılabilir.
+- Adım 7: `TimeProvider` DI kaydı Adım 12 yerine burada yapıldı; yazar doğum yılının gelecekte olmaması kuralı "bugün"ü bilmeyi gerektiriyor ve `DateTime.UtcNow` kullanmak kod kurallarına aykırı.
+- Adım 7: Doğrulama hata anahtarları C# özellik adıyla (`FirstName`) döner; camelCase'e çevirmek ek kod gerektirdiği için sade tutuldu.
 
 ## Çözülemeyen Sorunlar
 Yok
@@ -141,6 +143,23 @@ Yok
 - Controller neden `try { ... } catch (NotFoundException) { return NotFound(); }` yazmıyor?
 - `DELETE` neden gövdesiz 204 döner?
 **Kendin yazmayı dene:** `GET /api/authors/{id}/books` endpoint'i ekle: yazarın kitaplarının başlıklarını `List<string>` olarak dönsün (projeksiyonla).
+
+### Adım 7 — Doğrulama
+**Ne yapıldı:** `FluentValidation.DependencyInjectionExtensions` eklendi. `Validators/` altında yazar istekleri için iki validator yazıldı; DI'a toplu kaydedildi. Servis, işe başlamadan önce `ValidateAndThrowAsync` çağırıyor. `GlobalExceptionHandler` artık `ValidationException`'ı alan bazlı hatalarla birlikte **400**'e çeviriyor.
+**Yeni kavramlar:**
+- *AbstractValidator&lt;T&gt;* (`Validators/CreateAuthorRequestValidator.cs`): Kurallar `RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100)` gibi zincirle yazılır. Hazır kural yoksa `Must(...)` ile kendi koşulunu yazarsın.
+- *Elle doğrulama* (`AuthorService.CreateAsync`): Validator, servise `IValidator<CreateAuthorRequest>` olarak enjekte edilir ve açıkça çağrılır. Doğrulamanın nerede ve ne zaman çalıştığı kodda görünür.
+- *ValidationProblemDetails* (`Infrastructure/GlobalExceptionHandler.cs`): ProblemDetails'e `errors` sözlüğü ekler: `{"FirstName": ["'First Name' boş olmamalı."]}`. Hatalar `GroupBy(PropertyName)` ile alana göre gruplanır.
+- *TimeProvider* (`ServiceCollectionExtensions.cs`): "Doğum yılı gelecekte olamaz" kuralı bugünün tarihini bilmeli. `DateTime.UtcNow` yerine DI'dan gelen `TimeProvider` kullanıldı; testte saat sabitlenebilir.
+- *SuppressImplicitRequiredAttributeForNonNullableReferenceTypes* (`Program.cs`): Nullable açıkken ASP.NET Core `string FirstName` gibi alanları gizlice `[Required]` sayar ve FluentValidation'dan önce kendi İngilizce 400'ünü döner. Bu ayarla eksik alan `null` gelir ve mesajı FluentValidation üretir.
+**Neden böyle:** `FluentValidation.AspNetCore` paketinin otomatik doğrulaması artık önerilmiyor (async kuralları desteklemiyor, ne zaman çalıştığı gizli). Elle çağırmak bir satır fazladan kod ama akış açık. Mesajlar `LanguageManager.Culture = "tr"` ile her makinede Türkçe. `TimeProvider` kaydı ISKELET'te Adım 12'de geçiyor; doğum yılı kuralı ona ihtiyaç duyduğu için bu adımda yapıldı (bkz. Kararlar).
+**Karşılaşılan hatalar:** Yok. Not: Bozuk JSON (`{"firstName":123}`) veya boş gövde hâlâ ASP.NET Core'un kendi 400 yanıtıyla döner, çünkü bu durumda istek nesnesi hiç oluşturulamaz ve servise ulaşılamaz. İkisi de ProblemDetails formatında olduğu için istemci aynı şekilde okuyabilir.
+**Bilerek boz:** `Program.cs`'teki `SuppressImplicitRequired...` ayarını kaldır ve `{"lastName":"X"}` gönder. Hata mesajı ve hata anahtarı nasıl değişti?
+**Kendini kontrol et:**
+- Doğrulamayı neden controller'da değil serviste çağırıyoruz?
+- `ValidationException` neden 409 değil de 400?
+- Validator'lar `AddValidatorsFromAssemblyContaining` ile nasıl bulunuyor?
+**Kendin yazmayı dene:** `FirstName` için "sadece harf ve boşluk içerebilir" kuralı ekle (`Matches(...)` ile).
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->

@@ -22,6 +22,15 @@ Content-Type: application/json
   "birthYear": 1923
 }
 
+### Geçersiz yazar → 400 + alan hataları
+POST {{KutuphaneApi_HostAddress}}/api/authors
+Content-Type: application/json
+
+{
+  "firstName": "",
+  "birthYear": 3000
+}
+
 ### Yazar güncelle → 204
 PUT {{KutuphaneApi_HostAddress}}/api/authors/1
 Content-Type: application/json

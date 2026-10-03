@@ -1,3 +1,4 @@
+using FluentValidation;
 using KutuphaneApi.Common.Exceptions;
 using KutuphaneApi.Data;
 using KutuphaneApi.Dtos.Authors;
@@ -7,7 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KutuphaneApi.Services;
 
-public class AuthorService(AppDbContext context) : IAuthorService
+public class AuthorService(
+    AppDbContext context,
+    IValidator<CreateAuthorRequest> createValidator,
+    IValidator<UpdateAuthorRequest> updateValidator) : IAuthorService
 {
     public async Task<IReadOnlyList<AuthorDto>> GetAllAsync(CancellationToken cancellationToken)
     {
@@ -31,6 +35,9 @@ public class AuthorService(AppDbContext context) : IAuthorService
 
     public async Task<AuthorDto> CreateAsync(CreateAuthorRequest request, CancellationToken cancellationToken)
     {
+        // Kurallara uymayan istekte ValidationException fırlatır; GlobalExceptionHandler bunu 400'e çevirir.
+        await createValidator.ValidateAndThrowAsync(request, cancellationToken);
+
         var author = request.ToEntity();
         context.Authors.Add(author);
         await context.SaveChangesAsync(cancellationToken);
@@ -41,6 +48,8 @@ public class AuthorService(AppDbContext context) : IAuthorService
 
     public async Task UpdateAsync(int id, UpdateAuthorRequest request, CancellationToken cancellationToken)
     {
+        await updateValidator.ValidateAndThrowAsync(request, cancellationToken);
+
         // Güncelleme için entity takip edilerek (tracking) okunur; SaveChanges sadece değişen sütunları UPDATE eder.
         var author = await context.Authors.FindAsync([id], cancellationToken)
             ?? throw new NotFoundException("Yazar", id);

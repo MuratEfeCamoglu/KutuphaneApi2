@@ -4,7 +4,10 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// Nullable olmayan string alanlar için ASP.NET Core'un kendi gizli [Required] kontrolünü kapatırız;
+// böylece tüm doğrulama mesajları tek kaynaktan, FluentValidation'dan gelir.
+builder.Services.AddControllers(options =>
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices(builder.Configuration);
 
