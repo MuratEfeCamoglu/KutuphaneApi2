@@ -1,4 +1,5 @@
 using KutuphaneApi.Data;
+using KutuphaneApi.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace KutuphaneApi.Extensions;
@@ -11,6 +12,10 @@ public static class ServiceCollectionExtensions
         // Bağlantı cümlesi appsettings.json → "ConnectionStrings:DefaultConnection" içinden okunur.
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+
+        // Hata yanıtlarını ProblemDetails formatında üretir ve exception'ları GlobalExceptionHandler'a yönlendirir.
+        services.AddProblemDetails();
+        services.AddExceptionHandler<GlobalExceptionHandler>();
 
         return services;
     }

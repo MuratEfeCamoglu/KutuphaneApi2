@@ -6,7 +6,7 @@
 - [x] Adım 2 — DbContext
 - [x] Adım 3 — Migration ve seed
 - [x] Adım 4 — API dokümantasyonu
-- [ ] Adım 5 — Hata altyapısı
+- [x] Adım 5 — Hata altyapısı
 - [ ] Adım 6 — Authors
 - [ ] Adım 7 — Doğrulama
 - [ ] Adım 8 — Categories
@@ -105,6 +105,22 @@ Yok
 **Kendini kontrol et:**
 - OpenAPI dokümanı ile Scalar arasındaki fark nedir?
 - `paths` şu an neden boş?
+
+### Adım 5 — Hata altyapısı
+**Ne yapıldı:** İki özel exception (`NotFoundException`, `BusinessRuleException`) ve bunları HTTP yanıtına çeviren `GlobalExceptionHandler` yazıldı. `AddProblemDetails`, `UseExceptionHandler` ve `UseStatusCodePages` ile tüm hata yanıtları aynı JSON biçiminde dönüyor.
+**Yeni kavramlar:**
+- *Özel exception* (`Common/Exceptions/`): Servis "bu kayıt yok" veya "bu kurala aykırı" dediğinde HTTP'den habersiz şekilde exception fırlatır. Servis `404` veya `409` bilmez; bu çeviri tek bir yerde yapılır.
+- *IExceptionHandler* (`Infrastructure/GlobalExceptionHandler.cs`): .NET 8 ile gelen arayüz. `UseExceptionHandler()` middleware'i yakalanmamış exception'ı buraya verir. `switch` ifadesiyle exception türüne göre durum kodu seçilir.
+- *ProblemDetails*: Hata yanıtları için standart format (`type`, `title`, `status`, `detail`, `traceId`). İstemci her hatayı aynı şekilde okuyabilir. Content-Type `application/problem+json` olur.
+- *Middleware sırası* (`Program.cs`): `UseExceptionHandler` en başa konur ki kendinden sonraki tüm adımlardaki hataları yakalasın.
+- *UseStatusCodePages*: Gövdesi boş hata yanıtlarına (örneğin olmayan bir adres) ProblemDetails gövdesi ekler.
+**Neden böyle:** Alternatif, her controller metodunda try-catch yazmaktı; bu hem tekrar hem de unutulmaya açık. 500 hatalarında `detail` boş bırakılır ve hata loglanır; böylece SQL veya stack trace istemciye sızmaz.
+**Karşılaşılan hatalar:** Yok.
+**Bilerek boz:** `Program.cs`'de `app.UseStatusCodePages();` satırını sil ve `curl -i http://localhost:5041/api/nope` çalıştır. Yanıt gövdesi nasıl değişti?
+**Kendini kontrol et:**
+- Servis neden doğrudan `return NotFound()` yazmıyor da exception fırlatıyor?
+- 500 hatasında neden `exception.Message` istemciye gönderilmiyor?
+- `UseExceptionHandler` pipeline'ın sonunda olsaydı ne olurdu?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->

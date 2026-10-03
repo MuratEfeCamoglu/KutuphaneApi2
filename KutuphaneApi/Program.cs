@@ -10,6 +10,12 @@ builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 
+// Pipeline'ın en başında: sonraki adımlarda fırlayan exception'ları yakalar.
+app.UseExceptionHandler();
+
+// Gövdesiz 4xx/5xx yanıtlarına (örn. olmayan bir adres → 404) ProblemDetails gövdesi ekler.
+app.UseStatusCodePages();
+
 if (app.Environment.IsDevelopment())
 {
     await DbInitializer.InitializeAsync(app.Services);
