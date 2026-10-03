@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="KutuphaneApi.Tests/KutuphaneApi.Tests.csproj" />
   <Project Path="KutuphaneApi/KutuphaneApi.csproj" />
 </Solution>

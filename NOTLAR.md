@@ -15,7 +15,7 @@
 - [x] Adım 11 — Members
 - [x] Adım 12 — Ödünç ve iade
 - [x] Adım 13 — Ödünç sorguları
-- [ ] Adım 14 — Unit testler
+- [x] Adım 14 — Unit testler
 - [ ] Adım 15 — Integration testler
 - [ ] Adım 16 — Son gözden geçirme
 
@@ -262,6 +262,25 @@ Yok
 - Durumu veritabanında bir sütunda saklasaydık, ödünç gecikmeye düştüğünde o sütunu kim güncelleyecekti?
 - `GET /api/members/3/loans` ile `GET /api/members/99/loans` neden farklı yanıt veriyor?
 - `WhereStatus` içindeki `_ =>` dalı hangi durumu karşılıyor?
+
+### Adım 14 — Unit testler
+**Ne yapıldı:** `KutuphaneApi.Tests` xUnit projesi oluşturulup `.slnx`'e eklendi. `Unit/TestDatabase.cs` her test için bellekte bir SQLite veritabanı açıyor. `LoanServiceTests` kural 1–6'yı, `DeleteAndStockRuleTests` kural 7, 8 ve 9'u test ediyor; toplam 18 test yeşil.
+**Yeni kavramlar:**
+- *xUnit `[Fact]` ve test sınıfı yaşam döngüsü*: xUnit her test metodu için sınıfı yeniden oluşturur, bittiğinde `Dispose` çağırır. Bu yüzden kurucuda açılan veritabanı her test için temizdir ve testler birbirini etkilemez.
+- *SQLite in-memory* (`TestDatabase`): `DataSource=:memory:` veritabanı sadece bağlantı açıkken yaşar; bağlantıyı alan olarak tutup testin sonunda kapatıyoruz. Gerçek SQL çalıştığı için `Count`, `CASE WHEN` ve foreign key gibi şeyler de test edilmiş olur (mock bunları yakalayamazdı).
+- *EnsureCreated*: Migration geçmişine bakmadan güncel modelden tabloları oluşturur. Test için hızlı ve yeterli; gerçek veritabanında migration kullanılır.
+- *Ayrı DbContext'ler* (`_db.CreateContext()`): Veri bir context ile eklenip servis başka bir context ile çalıştırılır. Aynı context kullanılsaydı EF Core bellekteki nesneleri döndürebilir ve "veritabanında gerçekten ne var" sorusunu atlayabilirdi.
+- *FakeTimeProvider*: `_time.Advance(TimeSpan.FromDays(15))` ile saat ileri sarılır. Kural 5 (gecikme) ve hesaplanan durum testleri, gerçekten 15 gün beklemeden bu sayede yazılabildi. Adım 7'den beri `DateTime.UtcNow` yerine `TimeProvider` kullanmamızın karşılığı burada görülüyor.
+- *Sınır testleri*: `CreateAsync_OnDueDate_LoanIsNotOverdue` ve `BookUpdate_StockEqualToActiveLoanCount_Succeeds` kuralın sınırını (`<` ile `<=` farkını) sabitler.
+- *Test adlandırma*: `Metot_Durum_BeklenenSonuç` kalıbı. Test kırıldığında adı neyin bozulduğunu söyler.
+**Neden böyle:** CLAUDE.md'ye uygun olarak mock kütüphanesi yok; servisler gerçek `AppDbContext` ve gerçek validator'larla çalışıyor. ISKELET'e göre `LoanService` için her kurala test istendi; kural 7–9 başka servislerde olduğu için ayrı bir sınıfta toplandı.
+**Karşılaşılan hatalar:** Testler ilk çalıştırmada geçti. Testin gerçekten bir şey yakaladığından emin olmak için kural 5'in koşulu geçici olarak bozuldu (`DueDate < now.AddYears(-1)`); `CreateAsync_MemberHasOverdueLoan_...` testi kırmızıya döndü, kod geri alınınca tekrar yeşil oldu. Hiç kırmızı görmediğin bir teste güvenme.
+**Bilerek boz:** `LoanService.CreateAsync` içinde kural 2'deki `>=` operatörünü `>` yap ve `dotnet test` çalıştır. Hangi test, hangi mesajla kırılıyor?
+**Kendini kontrol et:**
+- Neden `Moq` ile `AppDbContext`'i taklit etmek yerine gerçek SQLite kullandık?
+- `TestDatabase` bağlantıyı neden kurucuda açıp `Dispose`'da kapatıyor?
+- `FakeTimeProvider` olmasaydı kural 5'i nasıl test ederdin, sorun ne olurdu?
+**Kendin yazmayı dene:** `CategoryService` için "aynı ad farklı harf büyüklüğüyle eklenirse `BusinessRuleException`" testini yaz.
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
