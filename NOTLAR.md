@@ -14,7 +14,7 @@
 - [x] Adım 10 — Kitap listesi
 - [x] Adım 11 — Members
 - [x] Adım 12 — Ödünç ve iade
-- [ ] Adım 13 — Ödünç sorguları
+- [x] Adım 13 — Ödünç sorguları
 - [ ] Adım 14 — Unit testler
 - [ ] Adım 15 — Integration testler
 - [ ] Adım 16 — Son gözden geçirme
@@ -246,6 +246,22 @@ Yok
 - Kural 3'te neden `book.StockCount <= 0` değil de `StockCount - ActiveLoanCount <= 0` kontrol ediliyor?
 - `memberActiveLoans` listesini bellekte kontrol etmek neden burada N+1 sayılmaz?
 **Kendin yazmayı dene:** `POST /api/loans/{id}/extend` endpoint'i ekle: gecikmemiş aktif ödüncün `DueDate`'ini 7 gün uzatsın; gecikmişse 409 dönsün.
+
+### Adım 13 — Ödünç sorguları
+**Ne yapıldı:** `GET /api/loans` sayfalı olarak ve `status`, `memberId`, `bookId` filtreleriyle eklendi. `GET /api/members/{id}/loans` üyenin tüm ödünçlerini döndürüyor. Her ödünç yanıtında hesaplanan `status` alanı (`Active` / `Overdue` / `Returned`) var.
+**Yeni kavramlar:**
+- *Hesaplanan durum ve CASE WHEN* (`Mappings/LoanMappings.cs`): `l.ReturnDate != null ? Returned : l.DueDate < now ? Overdue : Active` ifadesi SQL'de `CASE WHEN` olur. Durum hiçbir yerde saklanmadığı için zaman geçtikçe kendiliğinden doğru kalır: dün `Active` olan ödünç, son tarih geçince sorguda `Overdue` görünür.
+- *Parametreli projeksiyon* (`SelectDto(this IQueryable<Loan> query, DateTime now)`): "Şu an" dışarıdan verilir ve sorguya SQL parametresi olarak gider. Projeksiyonun içinde `DateTime.UtcNow` yazsaydık hem test edilemezdi hem de SQLite'ın saatine bağımlı olurdu.
+- *Filtre ile projeksiyonun tutarlılığı* (`WhereStatus`): Durum filtresi, `SelectDto`'daki hesapla birebir aynı koşulları kullanır ve iki metot yan yana durur; birini değiştiren diğerini de görür.
+- *JsonStringEnumConverter* (`Program.cs`): Enum'lar JSON'da `2` yerine `"Returned"` olarak yazılır. Query string'de `?status=overdue` gibi harf büyüklüğünden bağımsız değerler de kabul edilir.
+- *Alt kaynak endpoint'i* (`GET /api/members/{id}/loans`): "Bir üyenin ödünçleri" için REST'te yaygın adresleme. Üye yoksa boş liste değil 404 döner.
+**Neden böyle:** `memberId` filtresi `GET /api/loans` üzerinde de var. `GET /api/members/{id}/loans` sayfasız ve üyenin varlığını kontrol eden, okunması kolay bir kısayol. Bir üyenin ödünç sayısı küçük olduğu için sayfalama gereksiz görüldü. Not: `Active`, "iade edilmemiş ve gecikmemiş" demektir. Kural 2'deki "aktif ödünç" ise iade edilmemiş tüm ödünçleri (gecikmişler dahil) sayar.
+**Karşılaşılan hatalar:** Yok. `?status=Lost` veya `?status=7` gibi değerler model binding aşamasında 400 alır (FluentValidation'a ulaşmaz). Validator'daki `IsInEnum` ikinci bir güvenlik ağıdır.
+**Bilerek boz:** `LoanMappings.SelectDto` içinde `l.DueDate < now` yerine `l.DueDate < DateTime.UtcNow` yaz. Uygulama çalışır mı? Adım 14'te `FakeTimeProvider` ile zamanı 30 gün ileri saran bir test yazınca ne olur?
+**Kendini kontrol et:**
+- Durumu veritabanında bir sütunda saklasaydık, ödünç gecikmeye düştüğünde o sütunu kim güncelleyecekti?
+- `GET /api/members/3/loans` ile `GET /api/members/99/loans` neden farklı yanıt veriyor?
+- `WhereStatus` içindeki `_ =>` dalı hangi durumu karşılıyor?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->

@@ -1,6 +1,7 @@
 using FluentValidation;
 using KutuphaneApi.Common.Exceptions;
 using KutuphaneApi.Data;
+using KutuphaneApi.Dtos.Loans;
 using KutuphaneApi.Dtos.Members;
 using KutuphaneApi.Mappings;
 using KutuphaneApi.Services.Interfaces;
@@ -31,6 +32,22 @@ public class MemberService(
             .SelectDto()
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("Üye", id);
+    }
+
+    public async Task<IReadOnlyList<LoanDto>> GetLoansAsync(int id, CancellationToken cancellationToken)
+    {
+        // Üye yoksa boş liste değil 404 dönmeli; "kaydı yok" ile "ödüncü yok" farklı durumlar.
+        if (!await context.Members.AnyAsync(m => m.Id == id, cancellationToken))
+        {
+            throw new NotFoundException("Üye", id);
+        }
+
+        return await context.Loans
+            .AsNoTracking()
+            .Where(l => l.MemberId == id)
+            .OrderByDescending(l => l.LoanDate).ThenByDescending(l => l.Id)
+            .SelectDto(timeProvider.GetUtcNow().UtcDateTime)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<MemberDto> CreateAsync(CreateMemberRequest request, CancellationToken cancellationToken)

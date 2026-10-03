@@ -1,5 +1,6 @@
 using FluentValidation;
 using KutuphaneApi.Common.Exceptions;
+using KutuphaneApi.Common.Pagination;
 using KutuphaneApi.Data;
 using KutuphaneApi.Dtos.Loans;
 using KutuphaneApi.Entities;
@@ -12,18 +13,48 @@ namespace KutuphaneApi.Services;
 public class LoanService(
     AppDbContext context,
     TimeProvider timeProvider,
-    IValidator<CreateLoanRequest> createValidator) : ILoanService
+    IValidator<CreateLoanRequest> createValidator,
+    IValidator<LoanQueryParameters> queryValidator) : ILoanService
 {
     // İş kurallarındaki sabitler: adı olan sabitler, koda gömülü "sihirli sayılardan" daha okunur.
     public const int LoanPeriodDays = 14;
     public const int MaxActiveLoansPerMember = 3;
+
+    public async Task<PagedResult<LoanDto>> GetPagedAsync(LoanQueryParameters parameters, CancellationToken cancellationToken)
+    {
+        await queryValidator.ValidateAndThrowAsync(parameters, cancellationToken);
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var query = context.Loans.AsNoTracking();
+
+        if (parameters.Status is not null)
+        {
+            query = query.WhereStatus(parameters.Status.Value, now);
+        }
+
+        if (parameters.MemberId is not null)
+        {
+            query = query.Where(l => l.MemberId == parameters.MemberId);
+        }
+
+        if (parameters.BookId is not null)
+        {
+            query = query.Where(l => l.BookId == parameters.BookId);
+        }
+
+        // En yeni ödünç en üstte.
+        return await query
+            .OrderByDescending(l => l.LoanDate).ThenByDescending(l => l.Id)
+            .SelectDto(now)
+            .ToPagedResultAsync(parameters, cancellationToken);
+    }
 
     public async Task<LoanDto> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         return await context.Loans
             .AsNoTracking()
             .Where(l => l.Id == id)
-            .SelectDto()
+            .SelectDto(timeProvider.GetUtcNow().UtcDateTime)
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("Ödünç", id);
     }

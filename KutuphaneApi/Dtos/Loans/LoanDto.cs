@@ -8,4 +8,5 @@ public record LoanDto(
     string MemberFullName,
     DateTime LoanDate,
     DateTime DueDate,
-    DateTime? ReturnDate);
+    DateTime? ReturnDate,
+    LoanStatus Status);

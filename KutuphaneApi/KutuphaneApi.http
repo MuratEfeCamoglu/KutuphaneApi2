@@ -175,6 +175,9 @@ GET {{KutuphaneApi_HostAddress}}/api/members
 ### Tek üye
 GET {{KutuphaneApi_HostAddress}}/api/members/1
 
+### Üyenin ödünçleri (hesaplanan durum ile)
+GET {{KutuphaneApi_HostAddress}}/api/members/1/loans
+
 ### Üye ekle → 201
 POST {{KutuphaneApi_HostAddress}}/api/members
 Content-Type: application/json
@@ -235,6 +238,18 @@ Content-Type: application/json
 
 ### Tek ödünç
 GET {{KutuphaneApi_HostAddress}}/api/loans/1
+
+### Tüm ödünçler (sayfalı, en yeni üstte)
+GET {{KutuphaneApi_HostAddress}}/api/loans
+
+### Durum filtresi: Active | Overdue | Returned
+GET {{KutuphaneApi_HostAddress}}/api/loans?status=Overdue
+
+### Üyeye ve kitaba göre filtre
+GET {{KutuphaneApi_HostAddress}}/api/loans?memberId=1&bookId=3
+
+### Geçersiz durum → 400
+GET {{KutuphaneApi_HostAddress}}/api/loans?status=Lost
 
 ### Gecikmiş ödüncü olan üye → 409 (kural 5)
 POST {{KutuphaneApi_HostAddress}}/api/loans

@@ -1,3 +1,4 @@
+using KutuphaneApi.Common.Pagination;
 using KutuphaneApi.Dtos.Loans;
 using KutuphaneApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,15 @@ namespace KutuphaneApi.Controllers;
 [Route("api/[controller]")]
 public class LoansController(ILoanService loanService) : ControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<LoanDto>>> GetAll(
+        [FromQuery] LoanQueryParameters parameters, CancellationToken cancellationToken)
+    {
+        return Ok(await loanService.GetPagedAsync(parameters, cancellationToken));
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

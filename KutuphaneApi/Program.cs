@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using KutuphaneApi.Data.Seed;
 using KutuphaneApi.Extensions;
 using Scalar.AspNetCore;
@@ -7,7 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Nullable olmayan string alanlar için ASP.NET Core'un kendi gizli [Required] kontrolünü kapatırız;
 // böylece tüm doğrulama mesajları tek kaynaktan, FluentValidation'dan gelir.
 builder.Services.AddControllers(options =>
-    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
+    // Enum'lar JSON'da sayı yerine adıyla yazılır: "status": "Overdue".
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices(builder.Configuration);
 

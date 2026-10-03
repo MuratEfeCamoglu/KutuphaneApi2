@@ -1,3 +1,4 @@
+using KutuphaneApi.Dtos.Loans;
 using KutuphaneApi.Dtos.Members;
 using KutuphaneApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,15 @@ public class MembersController(IMemberService memberService) : ControllerBase
     public async Task<ActionResult<MemberDto>> GetById(int id, CancellationToken cancellationToken)
     {
         return Ok(await memberService.GetByIdAsync(id, cancellationToken));
+    }
+
+    // Alt kaynak: bir üyenin ödünçleri → /api/members/{id}/loans
+    [HttpGet("{id:int}/loans")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<LoanDto>>> GetLoans(int id, CancellationToken cancellationToken)
+    {
+        return Ok(await memberService.GetLoansAsync(id, cancellationToken));
     }
 
     [HttpPost]
