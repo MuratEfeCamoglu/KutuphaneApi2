@@ -1,5 +1,6 @@
 using KutuphaneApi.Data.Seed;
 using KutuphaneApi.Extensions;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,9 @@ if (app.Environment.IsDevelopment())
 {
     await DbInitializer.InitializeAsync(app.Services);
     app.MapOpenApi();
+
+    // Scalar: /openapi/v1.json dokümanını /scalar adresinde tarayıcıdan denenebilir bir arayüzle gösterir.
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();

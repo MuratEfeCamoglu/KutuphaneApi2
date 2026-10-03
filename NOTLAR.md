@@ -5,7 +5,7 @@
 - [x] Adım 1 — Entity'ler
 - [x] Adım 2 — DbContext
 - [x] Adım 3 — Migration ve seed
-- [ ] Adım 4 — API dokümantasyonu
+- [x] Adım 4 — API dokümantasyonu
 - [ ] Adım 5 — Hata altyapısı
 - [ ] Adım 6 — Authors
 - [ ] Adım 7 — Doğrulama
@@ -93,6 +93,18 @@ Yok
 - Seed verisini neden Production'da çalıştırmıyoruz?
 - Kitaplara `AuthorId = 1` yerine `Author = orhan` vermenin avantajı ne?
 **Kendin yazmayı dene:** Seed'e kendi sevdiğin bir yazar ve iki kitabını ekle, `kutuphane.db`'yi silip uygulamayı yeniden başlat.
+
+### Adım 4 — API dokümantasyonu
+**Ne yapıldı:** `Scalar.AspNetCore` paketi eklendi ve Development ortamında `app.MapScalarApiReference()` çağrıldı. Artık `http://localhost:5041/scalar` adresinde API'yi tarayıcıdan deneyebilirsin.
+**Yeni kavramlar:**
+- *OpenAPI dokümanı*: API'nin tüm endpoint'lerini, parametrelerini ve yanıt şekillerini anlatan JSON dosyası. `AddOpenApi()` + `MapOpenApi()` bunu `/openapi/v1.json` adresinde üretir.
+- *Scalar*: Bu JSON'u okuyup istek gönderebileceğin bir arayüz çizer. .NET 9'dan önce şablonda Swagger UI (Swashbuckle) vardı; artık şablon sadece JSON üretiyor, arayüzü sen seçiyorsun.
+**Neden böyle:** Dokümantasyon sadece Development'ta açık. Gerçek ortamda API'nin tüm yapısını herkese göstermek istemeyiz.
+**Karşılaşılan hatalar:** Yok. Not: `/scalar` önce `302` ile `/scalar/` adresine yönlendirir; tarayıcı bunu otomatik takip eder, `curl` için `-L` gerekir.
+**Bilerek boz:** `ASPNETCORE_ENVIRONMENT` değerini `launchSettings.json`'da `Production` yapıp uygulamayı aç. `/scalar` ne döner? (Sonra geri al.)
+**Kendini kontrol et:**
+- OpenAPI dokümanı ile Scalar arasındaki fark nedir?
+- `paths` şu an neden boş?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
