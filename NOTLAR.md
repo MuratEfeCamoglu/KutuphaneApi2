@@ -9,7 +9,7 @@
 - [x] Adım 5 — Hata altyapısı
 - [x] Adım 6 — Authors
 - [x] Adım 7 — Doğrulama
-- [ ] Adım 8 — Categories
+- [x] Adım 8 — Categories
 - [ ] Adım 9 — Books
 - [ ] Adım 10 — Kitap listesi
 - [ ] Adım 11 — Members
@@ -25,6 +25,7 @@
 - Adım 2: 13:33'te başlatılmış `dotnet watch` oturumu uygulamayı sürekli yeniden başlatıp build'i kilitlediği için durduruldu. Geliştirme bitince `dotnet watch` yeniden açılabilir.
 - Adım 7: `TimeProvider` DI kaydı Adım 12 yerine burada yapıldı; yazar doğum yılının gelecekte olmaması kuralı "bugün"ü bilmeyi gerektiriyor ve `DateTime.UtcNow` kullanmak kod kurallarına aykırı.
 - Adım 7: Doğrulama hata anahtarları C# özellik adıyla (`FirstName`) döner; camelCase'e çevirmek ek kod gerektirdiği için sade tutuldu.
+- Adım 8: Kategori adı ve e-posta benzersizliği SQLite `NOCASE` ile sağlanıyor; bu sadece ASCII harflerde büyük/küçük harf duyarsız ("KLASİK" ≠ "Klasik"). Normalize sütun eklemek sadelik için yapılmadı.
 
 ## Çözülemeyen Sorunlar
 Yok
@@ -160,6 +161,20 @@ Yok
 - `ValidationException` neden 409 değil de 400?
 - Validator'lar `AddValidatorsFromAssemblyContaining` ile nasıl bulunuyor?
 **Kendin yazmayı dene:** `FirstName` için "sadece harf ve boşluk içerebilir" kuralı ekle (`Matches(...)` ile).
+
+### Adım 8 — Categories
+**Ne yapıldı:** Adım 6–7 kalıbı aynen tekrarlandı: DTO'lar, `CategoryMappings`, `ICategoryService`/`CategoryService`, `CategoriesController`, iki validator ve `.http` örnekleri. Aynı adla ikinci kategori (harf büyüklüğü farklı olsa bile, örn. `roman`) **409** dönüyor.
+**Yeni kavramlar:**
+- *Benzersizlik kontrolü serviste* (`CategoryService.EnsureNameIsUniqueAsync`): Kaydetmeden önce `AnyAsync` ile aynı ad var mı diye bakılır ve `BusinessRuleException` fırlatılır. Veritabanındaki unique index ikinci savunma hattıdır.
+- *Güncellemede kendini hariç tutmak* (`c.Id != excludeId`): "Tarih" kategorisini yine "Tarih" olarak kaydetmek çakışma değildir. `excludeId` `null` ise EF Core C#'taki null anlamını korur; SQL'de `Id <> NULL` hatasına düşmez.
+- *Çoka-çok silme*: Kategori silinince `BookCategories` ara tablosundaki satırlar Cascade ile silinir, kitaplar yerinde kalır.
+**Neden böyle:** Unique index ihlali olursa EF Core `DbUpdateException` fırlatır ve bu bizim handler'da 500 olur. Bu yüzden ihlali önceden kontrol edip anlamlı bir 409 mesajı veriyoruz. Aynı anda iki istek aynı adı eklerse ikincisi yine 500 alabilir; eşzamanlılık bu projenin kapsamı dışında.
+**Karşılaşılan hatalar:** Hata değil ama öğretici bir sınır: `"KLASİK"` adı `"Klasik"` ile çakışma sayılmadı. SQLite'ın `NOCASE` karşılaştırması sadece ASCII harfleri (A–Z) büyük/küçük harf duyarsız karşılaştırır; Türkçe `İ/i`, `Ş/ş` gibi harfler bu kapsama girmez. Tam çözüm normalize edilmiş ayrı bir sütun (`NormalizedName`) tutmak olurdu; sadelik için yapılmadı (bkz. Kararlar).
+**Bilerek boz:** `EnsureNameIsUniqueAsync` çağrısını `CreateAsync`'ten kaldır ve `"Roman"` adıyla POST gönder. Hangi durum kodu dönüyor ve log'da hangi exception görünüyor?
+**Kendini kontrol et:**
+- `excludeId` parametresi olmasaydı bir kategoriyi kendi adıyla güncellemek ne döndürürdü?
+- Unique index varken servisteki kontrol neden gerekli?
+- `DELETE /api/categories/1` kitapları da siler mi?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->

@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
 
         // Scoped: her HTTP isteği için bir servis örneği oluşur (DbContext ile aynı yaşam süresi).
         services.AddScoped<IAuthorService, AuthorService>();
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }

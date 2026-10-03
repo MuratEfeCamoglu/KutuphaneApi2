@@ -44,4 +44,39 @@ Content-Type: application/json
 ### Kitabı olan yazarı sil → 409
 DELETE {{KutuphaneApi_HostAddress}}/api/authors/1
 
+### ===== Categories =====
+
+### Tüm kategoriler
+GET {{KutuphaneApi_HostAddress}}/api/categories
+
+### Tek kategori
+GET {{KutuphaneApi_HostAddress}}/api/categories/1
+
+### Kategori ekle → 201
+POST {{KutuphaneApi_HostAddress}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "Felsefe"
+}
+
+### Aynı adla kategori (harf büyüklüğü farklı) → 409
+POST {{KutuphaneApi_HostAddress}}/api/categories
+Content-Type: application/json
+
+{
+  "name": "roman"
+}
+
+### Kategori güncelle → 204
+PUT {{KutuphaneApi_HostAddress}}/api/categories/4
+Content-Type: application/json
+
+{
+  "name": "Tarih ve Kültür"
+}
+
+### Kategori sil → 204
+DELETE {{KutuphaneApi_HostAddress}}/api/categories/4
+
 ###
