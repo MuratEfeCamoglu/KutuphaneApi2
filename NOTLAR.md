@@ -7,7 +7,7 @@
 - [x] Adım 3 — Migration ve seed
 - [x] Adım 4 — API dokümantasyonu
 - [x] Adım 5 — Hata altyapısı
-- [ ] Adım 6 — Authors
+- [x] Adım 6 — Authors
 - [ ] Adım 7 — Doğrulama
 - [ ] Adım 8 — Categories
 - [ ] Adım 9 — Books
@@ -121,6 +121,26 @@ Yok
 - Servis neden doğrudan `return NotFound()` yazmıyor da exception fırlatıyor?
 - 500 hatasında neden `exception.Message` istemciye gönderilmiyor?
 - `UseExceptionHandler` pipeline'ın sonunda olsaydı ne olurdu?
+
+### Adım 6 — Authors
+**Ne yapıldı:** İlk tam dikey dilim: `Dtos/Authors/` altında üç record, `Mappings/AuthorMappings.cs`, `IAuthorService`/`AuthorService` ve `AuthorsController`. Beş endpoint (`GET`, `GET {id}`, `POST`, `PUT {id}`, `DELETE {id}`) çalışıyor; kitabı olan yazarı silmek 409, olmayan yazar 404 dönüyor. `KutuphaneApi.http` dosyasına örnek istekler eklendi.
+**Yeni kavramlar:**
+- *DTO ve record* (`Dtos/Authors/AuthorDto.cs`): API sözleşmesi entity'den ayrıdır. Entity'yi döndürseydik `Books` koleksiyonu yüzünden döngüsel JSON veya istemeden sızan alanlar oluşurdu. `CreateAuthorRequest` ile `UpdateAuthorRequest` şu an aynı görünse de ayrı tutulur; ileride farklılaşabilirler.
+- *IQueryable projeksiyonu* (`Mappings/AuthorMappings.cs` → `SelectDto`): `Select` bir `IQueryable` üzerinde çağrıldığı için EF Core onu SQL'e çevirir. `a.Books.Count` bir `COUNT` alt sorgusuna dönüşür; kitaplar belleğe yüklenmez ve N+1 olmaz.
+- *AsNoTracking*: Okuma sorgularında EF Core'un "bu nesne değişti mi" takibini kapatır.
+- *Tracking ile güncelleme* (`AuthorService.UpdateAsync`): `FindAsync` ile okunan entity takip edilir. Özelliklerini değiştirip `SaveChangesAsync` çağırınca EF Core sadece değişen sütunlar için `UPDATE` üretir.
+- *`?? throw`*: Sorgu `null` dönerse aynı satırda exception fırlatmanın kısa yolu.
+- *ActionResult&lt;T&gt; ve CreatedAtAction* (`Controllers/AuthorsController.cs`): `CreatedAtAction(nameof(GetById), new { id }, dto)` 201 durum kodu, yeni kaydın adresini veren `Location` başlığı ve gövdeyi birlikte üretir.
+- *Route constraint* (`{id:int}`): `/api/authors/abc` gibi istekler bu metoda hiç düşmez, 404 döner.
+- *LowercaseUrls* (`ServiceCollectionExtensions.cs`): `[controller]` sınıf adını olduğu gibi aldığı için Location başlığı `/api/Authors/6` oluyordu; bu ayarla `/api/authors/6` olur.
+**Neden böyle:** Controller'da sadece "servisi çağır, doğru durum kodunu dön" kaldı; 404 ve 409 kararlarını servis exception ile verir. Oluşturma sonrası DTO'yu tekrar `GetByIdAsync` ile okuyoruz; bir sorgu fazladan çalışır ama dönen veri her zaman GET ile aynı olur (örneğin `bookCount`).
+**Karşılaşılan hatalar:** Duman testinde `"Yaşar"` içeren POST 400 döndü: `The JSON value could not be converted`. Kök neden API'de değildi; Windows'ta curl'e komut satırından verilen metin UTF-8 yerine sistem kod sayfasıyla gönderiliyor ve `ş` bozuk bayta dönüşüyordu. JSON'u UTF-8 dosyadan (`--data-binary @body.json`) gönderince düzeldi. Ders: bir hata gördüğünde önce "hata gerçekten benim kodumda mı?" diye sor.
+**Bilerek boz:** `AuthorService.GetAllAsync` içindeki `.SelectDto()` satırını kaldırıp metodun `List<Author>` döndürmesini sağla ve controller'dan doğrudan entity dön. `GET /api/authors` ne döndürür? `Books` alanı neden boş?
+**Kendini kontrol et:**
+- `FindAsync` ile `FirstOrDefaultAsync` arasındaki fark nedir?
+- Controller neden `try { ... } catch (NotFoundException) { return NotFound(); }` yazmıyor?
+- `DELETE` neden gövdesiz 204 döner?
+**Kendin yazmayı dene:** `GET /api/authors/{id}/books` endpoint'i ekle: yazarın kitaplarının başlıklarını `List<string>` olarak dönsün (projeksiyonla).
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->

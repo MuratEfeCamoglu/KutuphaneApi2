@@ -1,3 +1,38 @@
 @KutuphaneApi_HostAddress = http://localhost:5041
 
+### ===== Authors =====
+
+### Tüm yazarlar
+GET {{KutuphaneApi_HostAddress}}/api/authors
+Accept: application/json
+
+### Tek yazar
+GET {{KutuphaneApi_HostAddress}}/api/authors/1
+
+### Olmayan yazar → 404
+GET {{KutuphaneApi_HostAddress}}/api/authors/9999
+
+### Yazar ekle → 201
+POST {{KutuphaneApi_HostAddress}}/api/authors
+Content-Type: application/json
+
+{
+  "firstName": "Yaşar",
+  "lastName": "Kemal",
+  "birthYear": 1923
+}
+
+### Yazar güncelle → 204
+PUT {{KutuphaneApi_HostAddress}}/api/authors/1
+Content-Type: application/json
+
+{
+  "firstName": "Ferit Orhan",
+  "lastName": "Pamuk",
+  "birthYear": 1952
+}
+
+### Kitabı olan yazarı sil → 409
+DELETE {{KutuphaneApi_HostAddress}}/api/authors/1
+
 ###
