@@ -1,3 +1,4 @@
+using KutuphaneApi.Data.Seed;
 using KutuphaneApi.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    await DbInitializer.InitializeAsync(app.Services);
     app.MapOpenApi();
 }
 

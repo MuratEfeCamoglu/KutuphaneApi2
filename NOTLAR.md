@@ -4,7 +4,7 @@
 - [x] Adım 0 — Hazırlık
 - [x] Adım 1 — Entity'ler
 - [x] Adım 2 — DbContext
-- [ ] Adım 3 — Migration ve seed
+- [x] Adım 3 — Migration ve seed
 - [ ] Adım 4 — API dokümantasyonu
 - [ ] Adım 5 — Hata altyapısı
 - [ ] Adım 6 — Authors
@@ -74,6 +74,25 @@ Yok
 - Bağlantı cümlesini neden koda değil `appsettings.json`'a yazıyoruz?
 - `UseCollation("NOCASE")` olmasaydı aynı e-postayla iki üye eklenebilir miydi?
 - DbContext neden "scoped" yaşam süresiyle kaydedilir?
+
+### Adım 3 — Migration ve seed
+**Ne yapıldı:** `dotnet-ef` yerel araç olarak kuruldu (`.config/dotnet-tools.json`), `InitialCreate` migration'ı `Data/Migrations/` altına üretildi. Development ortamında uygulama açılırken `Data/Seed/DbInitializer.cs` migration'ları uygular ve veritabanı boşsa 5 yazar, 4 kategori, 9 kitap, 3 üye ve 3 ödünç (iade edilmiş, aktif, gecikmiş) ekler.
+**Yeni kavramlar:**
+- *Yerel araç (tool manifest)*: `dotnet-ef` makineye global değil, projeye kurulur. Depoyu klonlayan biri `dotnet tool restore` ile aynı sürümü alır.
+- *Migration* (`Data/Migrations/*_InitialCreate.cs`): Modeldeki değişikliği veritabanına uygulayan C# kodu. `Up` uygular, `Down` geri alır. `AppDbContextModelSnapshot.cs` modelin son halidir; bir sonraki migration bununla karşılaştırılarak üretilir.
+- *`Database.MigrateAsync()`*: Henüz uygulanmamış migration'ları çalıştırır. Hangilerinin uygulandığını `__EFMigrationsHistory` tablosunda tutar.
+- *Scope* (`services.CreateScope()`): DbContext scoped bir servistir; HTTP isteği dışında (uygulama açılışında) kullanmak için scope'u elle açarız.
+- *Nesne grafiği ile ekleme*: Kitaplara `Author = orhan` gibi nesne verdik, Id vermedik. `SaveChanges` sırasında EF Core önce yazarı ekleyip Id'sini alır, sonra kitabın `AuthorId`'sini doldurur.
+**Neden böyle:** EF Core'un `HasData` yöntemi yerine kodla seed seçildi: `HasData` sabit Id'ler ister ve her değişiklikte yeni migration üretir; ayrıca "bugünden 3 gün önce" gibi göreli tarihler yazılamaz. Seed sadece Development'ta çalışır, gerçek ortama örnek veri girmez. Seed'de `TimeProvider.System` kullanıldı çünkü `TimeProvider` DI kaydı Adım 12'de yapılacak.
+**Karşılaşılan hatalar:**
+1. `dotnet new tool-manifest` .NET 10'da dosyayı kök dizine (`dotnet-tools.json`) koydu; ISKELET `.config/` altında istediği için taşındı. `dotnet` iki konumu da arar.
+2. Uygulama ilk açılışta `SQLite Error 1: 'no such table: Authors'` verdi. Kök neden: `dotnet run --no-build` ile eski DLL çalıştırıldı. `dotnet ef migrations add` projeyi migration dosyasını yazmadan *önce* derler, yani derlenmiş DLL'de yeni migration yoktu. `MigrateAsync` boş bir veritabanı açtı ama uygulanacak migration bulamadı. Çözüm: önce `dotnet build`, sonra çalıştırmak.
+**Bilerek boz:** `kutuphane.db` dosyasını sil ve uygulamayı çalıştır. Dosya yeniden oluşuyor mu? Sonra `DbInitializer` içindeki `AnyAsync` kontrolünü kaldırıp uygulamayı iki kez başlat. İkinci açılışta ne olur (ipucu: benzersiz ISBN)?
+**Kendini kontrol et:**
+- `__EFMigrationsHistory` tablosu ne işe yarar?
+- Seed verisini neden Production'da çalıştırmıyoruz?
+- Kitaplara `AuthorId = 1` yerine `Author = orhan` vermenin avantajı ne?
+**Kendin yazmayı dene:** Seed'e kendi sevdiğin bir yazar ve iki kitabını ekle, `kutuphane.db`'yi silip uygulamayı yeniden başlat.
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
