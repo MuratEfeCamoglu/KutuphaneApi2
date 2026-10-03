@@ -16,7 +16,7 @@
 - [x] Adım 12 — Ödünç ve iade
 - [x] Adım 13 — Ödünç sorguları
 - [x] Adım 14 — Unit testler
-- [ ] Adım 15 — Integration testler
+- [x] Adım 15 — Integration testler
 - [ ] Adım 16 — Son gözden geçirme
 
 ## Kararlar
@@ -281,6 +281,24 @@ Yok
 - `TestDatabase` bağlantıyı neden kurucuda açıp `Dispose`'da kapatıyor?
 - `FakeTimeProvider` olmasaydı kural 5'i nasıl test ederdin, sorun ne olurdu?
 **Kendin yazmayı dene:** `CategoryService` için "aynı ad farklı harf büyüklüğüyle eklenirse `BusinessRuleException`" testini yaz.
+
+### Adım 15 — Integration testler
+**Ne yapıldı:** `Microsoft.AspNetCore.Mvc.Testing` eklendi. `Integration/KutuphaneApiFactory.cs`, API'yi bellekte ayağa kaldırıyor, test veritabanı ve sahte saat kullanıyor. Beş kaynağın her biri için en az bir başarılı ve bir hata yolu testi yazıldı (18 yeni test, toplam 36 test yeşil).
+**Yeni kavramlar:**
+- *WebApplicationFactory&lt;Program&gt;*: `Program.cs`'i gerçek bir port açmadan çalıştırır; `CreateClient()` ile alınan `HttpClient` istekleri doğrudan bellekteki sunucuya gönderir. İstek middleware, routing, model binding, controller, servis, EF Core ve SQLite zincirinin tamamından geçer. Unit testlerin yakalayamayacağı hatalar (yanlış route, eksik DI kaydı, yanlış durum kodu, JSON biçimi) burada yakalanır.
+- *Ortam (environment) değiştirme* (`UseEnvironment("Testing")`): `Program.cs`'teki `IsDevelopment()` bloğu çalışmaz, yani seed verisi ve dosya veritabanı devreye girmez. Her test boş bir veritabanıyla başlar.
+- *Ayar ezme* (`UseSetting("ConnectionStrings:DefaultConnection", ...)`): `appsettings.json`'daki bağlantı cümlesi test için değiştirilir. Uygulama kodu değişmez; bağlantı cümlesini koda gömmemenin faydası burada görülür.
+- *Paylaşımlı in-memory SQLite* (`file:test-{guid}?mode=memory&cache=shared`): API'nin her istekte açtığı bağlantılar aynı bellek veritabanını görür. Factory'deki `_keepAliveConnection` açık kaldıkça veritabanı yaşar. Guid sayesinde her testin veritabanı ayrıdır.
+- *ConfigureTestServices*: Uygulamanın DI kayıtlarından sonra çalışır. `TimeProvider` burada `FakeTimeProvider` ile değiştirildi; test `Factory.Time.Advance(...)` ile API'nin saatini ileri sarabiliyor (`LoansEndpointTests.Post_MemberWithOverdueLoan_Returns409`).
+- *Program sınıfına erişim*: .NET 10'da top-level `Program` sınıfı testlerden görülebildiği için eski projelerdeki `public partial class Program;` satırına gerek kalmadı.
+**Neden böyle:** Her test sınıfı örneği kendi factory'sini oluşturuyor (`IntegrationTestBase`). `IClassFixture` ile tek factory paylaşmak daha hızlı olurdu ama testler birbirinin verisini görür ve sıraya bağımlı hale gelebilirdi. 18 test yaklaşık 1–2 saniyede bittiği için izolasyon tercih edildi. Test verisi doğrudan veritabanına değil API üzerinden (`CreateAuthorAsync` vb.) ekleniyor; böylece testler gerçek bir istemcinin yaşayacağı akışı izliyor.
+**Karşılaşılan hatalar:** Testler ilk çalıştırmada geçti. Testlerin dosya veritabanına yazmadığını doğrulamak için `kutuphane.db` silinip testler tekrar çalıştırıldı; dosya yeniden oluşmadı, yani bağlantı cümlesi ezme işlemi çalışıyor.
+**Bilerek boz:** `KutuphaneApiFactory` içindeki `UseEnvironment("Testing")` satırını sil ve testleri çalıştır. Hangi testler kırılıyor ve neden (ipucu: seed verisi ve `kutuphane.db`)?
+**Kendini kontrol et:**
+- Unit test ile integration test arasındaki fark nedir? Bu projede hangisi hangi hatayı yakalar?
+- `_keepAliveConnection` kapatılsaydı ne olurdu?
+- Neden testte `DateTime.UtcNow` ile karşılaştırma yapmak yerine `Factory.Time.GetUtcNow()` kullanıldı?
+**Kendin yazmayı dene:** `GET /api/loans?memberId=...&status=Returned` için bir integration test yaz.
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
