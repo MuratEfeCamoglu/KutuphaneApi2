@@ -81,8 +81,20 @@ DELETE {{KutuphaneApi_HostAddress}}/api/categories/4
 
 ### ===== Books =====
 
-### Tüm kitaplar
+### Kitaplar (varsayılan: 1. sayfa, 10 kayıt, başlığa göre artan)
 GET {{KutuphaneApi_HostAddress}}/api/books
+
+### Arama: başlık veya ISBN içinde
+GET {{KutuphaneApi_HostAddress}}/api/books?search=kar
+
+### Yazara ve kategoriye göre filtre
+GET {{KutuphaneApi_HostAddress}}/api/books?authorId=3&categoryId=2
+
+### Sadece müsait kopyası olanlar, yıla göre azalan, sayfa başına 3
+GET {{KutuphaneApi_HostAddress}}/api/books?onlyAvailable=true&sortBy=year&sortDirection=desc&pageSize=3&page=2
+
+### Geçersiz sayfalama/sıralama → 400
+GET {{KutuphaneApi_HostAddress}}/api/books?pageSize=100&sortBy=price
 
 ### Kitap detayı (yazar, kategoriler, müsait kopya)
 GET {{KutuphaneApi_HostAddress}}/api/books/1

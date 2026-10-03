@@ -1,5 +1,6 @@
 using FluentValidation;
 using KutuphaneApi.Common.Exceptions;
+using KutuphaneApi.Common.Pagination;
 using KutuphaneApi.Data;
 using KutuphaneApi.Dtos.Books;
 using KutuphaneApi.Entities;
@@ -12,15 +13,55 @@ namespace KutuphaneApi.Services;
 public class BookService(
     AppDbContext context,
     IValidator<CreateBookRequest> createValidator,
-    IValidator<UpdateBookRequest> updateValidator) : IBookService
+    IValidator<UpdateBookRequest> updateValidator,
+    IValidator<BookQueryParameters> queryValidator) : IBookService
 {
-    public async Task<IReadOnlyList<BookListItemDto>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<BookListItemDto>> GetPagedAsync(BookQueryParameters parameters, CancellationToken cancellationToken)
     {
-        return await context.Books
-            .AsNoTracking()
-            .OrderBy(b => b.Title)
+        await queryValidator.ValidateAndThrowAsync(parameters, cancellationToken);
+
+        // IQueryable'ı adım adım kuruyoruz; sadece verilen parametreler için Where eklenir.
+        // Sorgu ToListAsync/CountAsync çağrılana kadar veritabanına gitmez (deferred execution).
+        var query = context.Books.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(parameters.Search))
+        {
+            // EF.Functions.Like → SQL LIKE. SQLite'ta LIKE, ASCII harflerde büyük/küçük harf duyarsızdır.
+            var pattern = $"%{parameters.Search.Trim()}%";
+            query = query.Where(b => EF.Functions.Like(b.Title, pattern) || EF.Functions.Like(b.Isbn, pattern));
+        }
+
+        if (parameters.AuthorId is not null)
+        {
+            query = query.Where(b => b.AuthorId == parameters.AuthorId);
+        }
+
+        if (parameters.CategoryId is not null)
+        {
+            query = query.Where(b => b.Categories.Any(c => c.Id == parameters.CategoryId));
+        }
+
+        if (parameters.OnlyAvailable)
+        {
+            query = query.Where(b => b.StockCount > b.Loans.Count(l => l.ReturnDate == null));
+        }
+
+        var descending = string.Equals(parameters.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        // Aynı başlık/yıla sahip kitaplar sayfalar arasında yer değiştirmesin diye Id ile ikinci sıralama yapılır.
+        query = parameters.SortBy?.ToLowerInvariant() switch
+        {
+            "year" => descending
+                ? query.OrderByDescending(b => b.PublishedYear).ThenBy(b => b.Id)
+                : query.OrderBy(b => b.PublishedYear).ThenBy(b => b.Id),
+            _ => descending
+                ? query.OrderByDescending(b => b.Title).ThenBy(b => b.Id)
+                : query.OrderBy(b => b.Title).ThenBy(b => b.Id)
+        };
+
+        return await query
             .SelectListItemDto()
-            .ToListAsync(cancellationToken);
+            .ToPagedResultAsync(parameters, cancellationToken);
     }
 
     public async Task<BookDetailDto> GetByIdAsync(int id, CancellationToken cancellationToken)

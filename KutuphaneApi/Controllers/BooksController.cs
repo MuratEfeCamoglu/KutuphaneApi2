@@ -1,3 +1,4 @@
+using KutuphaneApi.Common.Pagination;
 using KutuphaneApi.Dtos.Books;
 using KutuphaneApi.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -8,10 +9,14 @@ namespace KutuphaneApi.Controllers;
 [Route("api/[controller]")]
 public class BooksController(IBookService bookService) : ControllerBase
 {
+    // [FromQuery]: parametre nesnesinin özellikleri URL'deki query string'den doldurulur.
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<BookListItemDto>>> GetAll(CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<BookListItemDto>>> GetAll(
+        [FromQuery] BookQueryParameters parameters, CancellationToken cancellationToken)
     {
-        return Ok(await bookService.GetAllAsync(cancellationToken));
+        return Ok(await bookService.GetPagedAsync(parameters, cancellationToken));
     }
 
     [HttpGet("{id:int}")]

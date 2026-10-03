@@ -11,7 +11,7 @@
 - [x] Adım 7 — Doğrulama
 - [x] Adım 8 — Categories
 - [x] Adım 9 — Books
-- [ ] Adım 10 — Kitap listesi
+- [x] Adım 10 — Kitap listesi
 - [ ] Adım 11 — Members
 - [ ] Adım 12 — Ödünç ve iade
 - [ ] Adım 13 — Ödünç sorguları
@@ -195,6 +195,24 @@ Yok
 - `GetByIdAsync` içinde neden `Include` kullanmadık da `UpdateAsync` içinde kullandık?
 - `categoryIds: [1, 2, 2]` gönderilirse ne olur, neden?
 **Kendin yazmayı dene:** `BookListItemDto`'ya kategori adlarını virgülle birleştiren bir `Categories` alanı ekle (ipucu: `string.Join` SQL'e çevrilemez; listeyi `IReadOnlyList<string>` olarak döndür).
+
+### Adım 10 — Kitap listesi
+**Ne yapıldı:** `GET /api/books` artık sayfalı `PagedResult<BookListItemDto>` dönüyor ve `search`, `authorId`, `categoryId`, `onlyAvailable`, `sortBy`, `sortDirection`, `page`, `pageSize` parametrelerini destekliyor. Geçersiz değerler (`pageSize=100`, `sortBy=price`, `page=0`) 400 dönüyor.
+**Yeni kavramlar:**
+- *Generic record* (`Common/Pagination/PagedResult.cs`): `PagedResult<T>` her tür liste için tekrar kullanılabilir. `TotalPages` saklanmaz, `TotalCount` ve `PageSize`'dan hesaplanır ama JSON'a yazılır.
+- *Query string'den nesne bağlama* (`[FromQuery] BookQueryParameters`): ASP.NET Core `?sortBy=year&page=2` değerlerini aynı adlı özelliklere (harf büyüklüğüne bakmadan) yazar. Varsayılan değerler (`Page = 1`) parametre gelmezse kullanılır.
+- *Kalıtımlı parametre ve validator* (`PagingParameters`, `PagingParametersValidator`): Sayfalama kuralları ortak bir sınıfta. `BookQueryParametersValidator` bunları `Include(...)` ile kendi kurallarına ekler. Adım 13'teki ödünç listesi de aynısını kullanacak.
+- *Koşullu sorgu kurma* (`BookService.GetPagedAsync`): `IQueryable`'a sadece gelen parametreler için `Where` eklenir. Sorgu ancak `CountAsync`/`ToListAsync` çağrılınca SQL'e çevrilip çalışır (deferred execution). Sonuçta tek bir `WHERE ... AND ...` cümlesi oluşur.
+- *EF.Functions.Like*: SQL `LIKE` operatörü. `string.Contains` SQLite'ta büyük/küçük harf duyarlı `instr` fonksiyonuna çevrilir; `LIKE` ise ASCII harflerde duyarsızdır (`?search=KAR` → "Kar").
+- *Skip/Take*: `OFFSET`/`LIMIT` olur. Sıralama olmadan sayfalama tutarsızdır; aynı değere sahip kayıtlar için `ThenBy(b => b.Id)` sırayı sabitler.
+**Neden böyle:** Sayfa boyutu 50 ile sınırlandı ki tek istekle tüm tablo çekilemesin. Sınırı aşan değer sessizce 50'ye düşürülmek yerine 400 dönüyor; istemci hatasını fark etsin. `onlyAvailable` filtresi de müsait kopya hesabını SQL'de yapıyor; kitaplar belleğe alınıp C#'ta filtrelenmiyor.
+**Karşılaşılan hatalar:** Konsolda `İçimizdeki Şeytan` başlığı bozuk görünüyordu. Yanıtın baytlarına (`od -c`) bakınca `Ş` için doğru UTF-8 baytlarının (`C5 9E`) geldiği görüldü. Sorun API'de değil, Windows konsolunun kod sayfasındaydı.
+**Bilerek boz:** `PaginationExtensions` içinde önce `Skip/Take` yapıp sonra `CountAsync` çağır (yani sayfanın içindeki kayıtları say). `?pageSize=3` ile `totalCount` ne olur?
+**Kendini kontrol et:**
+- `ToPagedResultAsync` kaç SQL sorgusu çalıştırır, neden?
+- `?page=99` neden hata değil de boş `items` döner?
+- Arama için `Contains` yerine neden `EF.Functions.Like` seçildi?
+**Kendin yazmayı dene:** `minYear` ve `maxYear` filtrelerini ekle; validator'a `minYear <= maxYear` kuralını yaz.
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
