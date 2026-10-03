@@ -1,4 +1,5 @@
 using KutuphaneApi.Common.Exceptions;
+using KutuphaneApi.Data;
 using KutuphaneApi.Dtos.Books;
 using KutuphaneApi.Dtos.Loans;
 using KutuphaneApi.Services;
@@ -23,13 +24,13 @@ public sealed class DeleteAndStockRuleTests : IDisposable
         return await service.CreateAsync(new CreateLoanRequest(bookId, memberId), CancellationToken.None);
     }
 
-    private BookService CreateBookService(Data.AppDbContext context) =>
+    private BookService CreateBookService(AppDbContext context) =>
         new(context,
             new CreateBookRequestValidator(_time),
             new UpdateBookRequestValidator(_time),
             new BookQueryParametersValidator());
 
-    private MemberService CreateMemberService(Data.AppDbContext context) =>
+    private MemberService CreateMemberService(AppDbContext context) =>
         new(context, _time, new CreateMemberRequestValidator(), new UpdateMemberRequestValidator());
 
     // Kural 7 (kitap)

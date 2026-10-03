@@ -17,7 +17,7 @@
 - [x] Adım 13 — Ödünç sorguları
 - [x] Adım 14 — Unit testler
 - [x] Adım 15 — Integration testler
-- [ ] Adım 16 — Son gözden geçirme
+- [x] Adım 16 — Son gözden geçirme
 
 ## Kararlar
 - Adım 0: Git deposu `Deneme/` klasöründe ayrıca başlatıldı (`git init -b main`). Üst dizindeki (`C:\Users\Efe`) depoya commit atılmasın diye bu klasör kendi deposuna sahip.
@@ -300,5 +300,66 @@ Yok
 - Neden testte `DateTime.UtcNow` ile karşılaştırma yapmak yerine `Factory.Time.GetUtcNow()` kullanıldı?
 **Kendin yazmayı dene:** `GET /api/loans?memberId=...&status=Returned` için bir integration test yaz.
 
+### Adım 16 — Son gözden geçirme
+**Ne yapıldı:** Tüm proje AGENT.md kontrol listesine göre tarandı, `README.md` yazıldı ve bu dosyanın Son Rapor bölümü dolduruldu. Build 0 hata / 0 uyarı, 36 test yeşil, uygulama sıfır veritabanıyla açılıp tüm liste uçları 200 döndü.
+**Yeni kavramlar:**
+- *Kod tarama*: `dotnet format style --diagnostics IDE0005 --verify-no-changes` kullanılmayan `using` satırlarını bulur. Ayrıca elle bir tarama yapıldı; "kullanılmıyor" görünen tek namespace'ler `Mappings` ve `Extensions` çıktı. Bunlar extension metotlar (`SelectDto`, `AddApplicationServices`) üzerinden kullanılıyor: extension metodun namespace'i `using` ile eklenmezse metot görünmez.
+**Neden böyle:** Kontrol listesi sonucu:
+- Controller'lar hiçbir yerde entity döndürmüyor; hepsi `Dtos/` altındaki record'ları döndürüyor.
+- Tüm okuma sorguları `AsNoTracking` + `Select` projeksiyonu kullanıyor. Döngü içinde sorgu yok; kategori listesi `IN`, sayılar `COUNT` alt sorgusuyla geliyor.
+- Tüm DB çağrıları `async` ve `CancellationToken` iletiyor.
+- Durum kodları 201/204/400/404/409 kurallarına uygun.
+- İş kuralları servislerde; controller'larda `try-catch` ve iş mantığı yok.
+- Bağlantı cümlesi `appsettings.json`'da; iş kuralı sabitleri (`LoanPeriodDays`, `MaxActiveLoansPerMember`, `MaxPageSize`) adlandırılmış sabitler.
+- Sadece iki test dosyasında kozmetik düzeltme yapıldı: `using` sırası ve `Data.AppDbContext` yerine `using KutuphaneApi.Data;` eklenmesi.
+**Karşılaşılan hatalar:** Yok.
+**Bilerek boz:** `AuthorMappings.cs` dosyasının başındaki `namespace` satırını `KutuphaneApi.Mappings.Authors` yap. `AuthorService` neden derlenmez ve hata mesajı sana ne söyler?
+**Kendini kontrol et:**
+- Bu projede bir isteğin `POST /api/loans`'tan veritabanına ve geri hata yanıtına kadar izlediği yolu sırayla söyleyebilir misin?
+- Hangi değerler hesaplanıyor, hangileri saklanıyor? Neden?
+
 ## Son Rapor
-<!-- Adım 16'da yazılır -->
+
+### Ne yapıldı
+ISKELET.md'deki 17 adımın (0–16) hepsi tamamlandı; her adım ayrı bir commit (`git log --oneline`). API beş kaynağı (yazar, kategori, kitap, üye, ödünç) yönetiyor ve dokuz iş kuralının hepsi uygulanıp test edildi. Son durum: build **0 hata / 0 uyarı**, `dotnet test` **36/36 yeşil** (18 unit + 18 integration).
+
+### Nasıl çalıştırılır ve test edilir
+```bash
+dotnet tool restore
+dotnet build KutuphaneApi.slnx
+dotnet run --project KutuphaneApi          # http://localhost:5041/scalar
+dotnet test KutuphaneApi.slnx
+```
+İstekleri denemek için `KutuphaneApi/KutuphaneApi.http` dosyasını kullan. Seed verisinde üye 1'in aktif, üye 2'nin gecikmiş bir ödüncü var; kural ihlallerini hemen deneyebilirsin. Veriyi sıfırlamak için `KutuphaneApi/kutuphane.db` dosyasını sil.
+
+### Önerilen okuma sırası
+1. `Entities/` (Author → Book → Loan): veri modeli.
+2. `Data/AppDbContext.cs` → `Data/Configurations/` → `Data/Migrations/*_InitialCreate.cs`: modelin tabloya dönüşmesi.
+3. `Data/Seed/DbInitializer.cs` ve `Program.cs`: uygulamanın açılışı ve middleware sırası.
+4. `Extensions/ServiceCollectionExtensions.cs`: DI kayıtları.
+5. **Authors dikey dilimi** (en sade örnek): `Dtos/Authors/` → `Mappings/AuthorMappings.cs` → `Services/AuthorService.cs` → `Controllers/AuthorsController.cs`.
+6. `Common/Exceptions/` → `Infrastructure/GlobalExceptionHandler.cs` → `Validators/CreateAuthorRequestValidator.cs`: hata ve doğrulama akışı.
+7. `Services/BookService.cs` + `Mappings/BookMappings.cs`: ilişkiler, hesaplanan alan, dinamik sorgu, sayfalama (`Common/Pagination/`).
+8. `Services/LoanService.cs` + `Mappings/LoanMappings.cs`: iş kuralları ve hesaplanan durum.
+9. `KutuphaneApi.Tests/Unit/` → `KutuphaneApi.Tests/Integration/`.
+
+Her dosyayı okurken NOTLAR.md'deki ilgili adımın "Bilerek boz" alıştırmasını yapman en hızlı öğrenme yolu olur.
+
+### Tamamlanamayan veya ödün verilen noktalar
+- **Türkçe harflerde benzersizlik**: SQLite `NOCASE` sadece ASCII harfleri harf büyüklüğünden bağımsız karşılaştırır; `"KLASİK"` ile `"Klasik"` farklı sayılır. Aramada (`LIKE`) da aynı sınır var.
+- **Eşzamanlılık**: Kapsam dışı. Aynı anda gelen iki istek, servisteki kontrolleri birlikte geçip son kopyayı iki kişiye verebilir veya unique index ihlaliyle 500 alabilir.
+- **İki kaynaklı 400 yanıtları**: Bozuk JSON veya geçersiz query tipi (`?pageSize=abc`) ASP.NET Core'un İngilizce 400 yanıtını döner; FluentValidation'a hiç ulaşmaz. İkisi de ProblemDetails biçiminde.
+- **Hata anahtarları**: Doğrulama hataları JSON alan adıyla (`firstName`) değil C# özellik adıyla (`FirstName`) döner.
+- **Gövdedeki olmayan Id**: Kitap veya ödünç isteğinde olmayan `authorId`/`bookId` 404 döner; bazı API'ler bunun için 400/422 kullanır.
+- **Adım sırası**: `TimeProvider` kaydı Adım 7'de, `GET /api/loans/{id}` Adım 12'de yapıldı (gerekçeler Kararlar'da).
+- Süreç notu: Geliştirme sırasında build'i kilitleyen eski uygulama süreci ve açık bir `dotnet watch` oturumu durduruldu. `dotnet watch` istersen yeniden başlatabilirsin.
+
+### Blog API'ye taşınacak kalıplar
+- **Katmanlar** (Controller → Service → DbContext): Clean Architecture'da bunlar ayrı projelere (Api / Application / Infrastructure / Domain) bölünecek; sorumluluklar aynı kalacak.
+- **DTO + elle mapping + IQueryable projeksiyonu** (`SelectDto`): Entity hiçbir zaman dışarı açılmaz, N+1 olmaz.
+- **Özel exception + `IExceptionHandler` + ProblemDetails**: Hata yönetimi tek yerde. JWT ile gelecek 401/403 durumları da buraya eklenir.
+- **FluentValidation'ı servis içinde elle çağırmak**: Doğrulama akışı görünür kalır.
+- **`TimeProvider` ve `FakeTimeProvider`**: Zamana bağlı her kural (token süresi, yayın tarihi) test edilebilir olur.
+- **`PagedResult<T>` + `PagingParameters` + validator `Include`**: Yazı listelerinde aynen kullanılabilir.
+- **Testler**: SQLite in-memory ile gerçek veritabanı üzerinde unit test; ortam ve ayar ezen `WebApplicationFactory` ile her test için izole integration test.
+- **`ServiceCollectionExtensions` ile sade `Program.cs`**, `.http` dosyasıyla belgelenen endpoint'ler, adım adım commit'ler.
