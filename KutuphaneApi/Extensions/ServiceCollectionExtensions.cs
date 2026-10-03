@@ -21,7 +21,15 @@ public static class ServiceCollectionExtensions
         services.AddRouting(options => options.LowercaseUrls = true);
 
         // Hata yanıtlarını ProblemDetails formatında üretir ve exception'ları GlobalExceptionHandler'a yönlendirir.
-        services.AddProblemDetails();
+        // CustomizeProblemDetails: üretilen her ProblemDetails yanıtına son dokunuşu yapar. ASP.NET Core'un kendi
+        // model binding hataları (bozuk JSON, geçersiz enum) İngilizce başlıkla gelir; FluentValidation hatalarıyla aynı olsun.
+        services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+        {
+            if (context.ProblemDetails is HttpValidationProblemDetails)
+            {
+                context.ProblemDetails.Title = "Doğrulama hatası";
+            }
+        });
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
         // TimeProvider: "şu an"ı veren soyutlama. Gerçekte sistem saati, testlerde ileri sarılabilen sahte saat verilir.

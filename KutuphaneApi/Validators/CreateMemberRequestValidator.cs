@@ -11,7 +11,7 @@ public class CreateMemberRequestValidator : AbstractValidator<CreateMemberReques
         RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
 
         // EmailAddress: "x@y" biçimini kontrol eden hazır kural.
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(200);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("Geçerli bir e-posta adresi girin.").MaximumLength(200);
 
         // When: kural sadece koşul sağlanırsa çalışır. Telefon isteğe bağlı; verildiyse biçimi doğru olmalı.
         RuleFor(x => x.PhoneNumber)

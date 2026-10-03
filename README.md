@@ -29,7 +29,7 @@
 PowerShell'de proje klasörüne gir ve üç komutu çalıştır:
 
 ```powershell
-cd C:\Users\Efe\Desktop\Deneme
+cd C:\Users\Efe\Documents\GitHub\KutuphaneApi2
 dotnet tool restore
 dotnet run --project KutuphaneApi
 ```
@@ -63,13 +63,13 @@ dotnet --version
 ### İlk kurulum komutları
 
 ```powershell
-cd C:\Users\Efe\Desktop\Deneme
+cd C:\Users\Efe\Documents\GitHub\KutuphaneApi2
 dotnet tool restore                  # .config/dotnet-tools.json'daki dotnet-ef aracını kurar (sadece bu proje için)
 dotnet restore KutuphaneApi.slnx     # NuGet paketlerini indirir (build zaten otomatik yapar)
 dotnet build KutuphaneApi.slnx       # Tüm çözümü derler: 0 hata, 0 uyarı beklenir
 ```
 
-> Tüm komutlar `Deneme` klasöründe çalıştırılır. `KutuphaneApi.slnx` hem API'yi hem test projesini içerir.
+> Tüm komutlar proje kök klasöründe (`KutuphaneApi.slnx` dosyasının bulunduğu yer) çalıştırılır. `KutuphaneApi.slnx` hem API'yi hem test projesini içerir.
 
 ---
 
@@ -500,7 +500,7 @@ Ayrıca ISBN, üye e-postası ve kategori adı benzersizdir (409). Müsait kopya
 ### Proje yapısı
 
 ```
-Deneme/
+KutuphaneApi2/
 ├── KutuphaneApi.slnx         Çözüm dosyası (iki proje)
 ├── NOTLAR.md                 Adım adım öğrenme notları ve son rapor
 ├── docs/images/              README ekran görüntüleri

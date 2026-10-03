@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Kütüphane Masası simgesi: mürekkep zemin üzerinde bir katalog kartı
+       (üstte kırmızı çizgi, mavi satırlar, altta çubuk deliği). Renkler site.css ile aynı. -->
+  <rect width="32" height="32" rx="6" fill="#1c2333"/>
+  <rect x="5" y="7" width="22" height="18" rx="1.5" fill="#fbfcfd"/>
+  <rect x="5" y="10" width="22" height="1.6" fill="#d98c8c"/>
+  <rect x="8" y="14" width="13" height="1.4" rx=".7" fill="#1c2333"/>
+  <rect x="8" y="17.5" width="16" height="1.2" rx=".6" fill="#a9bfd3"/>
+  <rect x="8" y="20.5" width="10" height="1.2" rx=".6" fill="#a9bfd3"/>
+  <circle cx="16" cy="23.6" r="1.1" fill="#1c2333"/>
+</svg>

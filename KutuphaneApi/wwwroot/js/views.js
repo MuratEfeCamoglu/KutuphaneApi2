@@ -243,12 +243,25 @@ export function slipsHtml(loans) {
   </div>`;
 }
 
+// API sayfa başına en fazla 50 kitap verir; açılır liste için tüm sayfaları sırayla toplar.
+async function fetchAllBooks() {
+  const books = [];
+  let page = 1, totalPages = 1;
+  do {
+    const result = await call("GET", `/api/books?pageSize=50&sortBy=title&page=${page}`);
+    books.push(...result.items);
+    totalPages = result.totalPages;
+    page++;
+  } while (page <= totalPages);
+  return books;
+}
+
 export async function renderLoans(view) {
   const [books, members] = await Promise.all([
-    call("GET", "/api/books?pageSize=50&sortBy=title"),
+    fetchAllBooks(),
     call("GET", "/api/members")
   ]);
-  const bookOptions = books.items.map(b => ({ value: b.id, label: `${b.title} (${b.availableCopies} rafta)` }));
+  const bookOptions = books.map(b => ({ value: b.id, label: `${b.title} (${b.availableCopies} rafta)` }));
   const memberOptions = members.map(m => ({ value: m.id, label: `${m.firstName} ${m.lastName}` }));
 
   view.innerHTML = `

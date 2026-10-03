@@ -30,7 +30,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
     // Scalar: /openapi/v1.json dokümanını /scalar adresinde tarayıcıdan denenebilir bir arayüzle gösterir.
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options => options.WithFavicon("/favicon.svg"));
 }
 
 app.UseHttpsRedirection();
