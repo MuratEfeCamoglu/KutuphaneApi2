@@ -167,4 +167,58 @@ Content-Type: application/json
 ### Ödünçteki kitabı sil → 409
 DELETE {{KutuphaneApi_HostAddress}}/api/books/5
 
+### ===== Members =====
+
+### Tüm üyeler
+GET {{KutuphaneApi_HostAddress}}/api/members
+
+### Tek üye
+GET {{KutuphaneApi_HostAddress}}/api/members/1
+
+### Üye ekle → 201
+POST {{KutuphaneApi_HostAddress}}/api/members
+Content-Type: application/json
+
+{
+  "firstName": "Can",
+  "lastName": "Öztürk",
+  "email": "can.ozturk@example.com",
+  "phoneNumber": "+905551234567"
+}
+
+### Aynı e-posta (büyük harfle) → 409
+POST {{KutuphaneApi_HostAddress}}/api/members
+Content-Type: application/json
+
+{
+  "firstName": "Başka",
+  "lastName": "Biri",
+  "email": "AYSE.YILMAZ@example.com"
+}
+
+### Geçersiz e-posta ve telefon → 400
+POST {{KutuphaneApi_HostAddress}}/api/members
+Content-Type: application/json
+
+{
+  "firstName": "Can",
+  "lastName": "Öztürk",
+  "email": "gecersiz-eposta",
+  "phoneNumber": "12ab"
+}
+
+### Üye güncelle → 204
+PUT {{KutuphaneApi_HostAddress}}/api/members/3
+Content-Type: application/json
+
+{
+  "firstName": "Zeynep",
+  "lastName": "Kaya",
+  "email": "zeynep.kaya@example.com",
+  "phoneNumber": null
+}
+
+### Aktif ödüncü olan üyeyi sil → 409
+DELETE {{KutuphaneApi_HostAddress}}/api/members/1
+
 ###

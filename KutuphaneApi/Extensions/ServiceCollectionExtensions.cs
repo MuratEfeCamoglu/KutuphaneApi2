@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuthorService, AuthorService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IBookService, BookService>();
+        services.AddScoped<IMemberService, MemberService>();
 
         return services;
     }

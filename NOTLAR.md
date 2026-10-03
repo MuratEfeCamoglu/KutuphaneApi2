@@ -12,7 +12,7 @@
 - [x] Adım 8 — Categories
 - [x] Adım 9 — Books
 - [x] Adım 10 — Kitap listesi
-- [ ] Adım 11 — Members
+- [x] Adım 11 — Members
 - [ ] Adım 12 — Ödünç ve iade
 - [ ] Adım 13 — Ödünç sorguları
 - [ ] Adım 14 — Unit testler
@@ -213,6 +213,20 @@ Yok
 - `?page=99` neden hata değil de boş `items` döner?
 - Arama için `Contains` yerine neden `EF.Functions.Like` seçildi?
 **Kendin yazmayı dene:** `minYear` ve `maxYear` filtrelerini ekle; validator'a `minYear <= maxYear` kuralını yaz.
+
+### Adım 11 — Members
+**Ne yapıldı:** Üye CRUD'u Adım 6–9 kalıbıyla yazıldı. E-posta biçimi (`EmailAddress`) ve isteğe bağlı telefon biçimi doğrulanıyor. Aynı e-posta (harf büyüklüğü farklı olsa bile) 409, aktif ödüncü olan üyeyi silmek 409 dönüyor. Yanıtta üyenin `activeLoanCount` değeri de var.
+**Yeni kavramlar:**
+- *Sunucunun belirlediği alan* (`CreatedAt`): İstek DTO'sunda yok; servis `TimeProvider.GetUtcNow()` ile doldurur. İstemci kayıt tarihini değiştiremez. Bu, DTO'ların entity'den ayrı olmasının bir faydası daha: istemci sadece izin verdiğimiz alanları gönderebilir (overposting koruması).
+- *Koşullu kural* (`When`) (`Validators/CreateMemberRequestValidator.cs`): Telefon boşsa biçim kuralı hiç çalışmaz; verildiyse `^\+?\d{10,15}$` biçimine uymalıdır.
+- *Servise TimeProvider enjekte etmek* (`MemberService`): Adım 7'de DI'a kaydedilen `TimeProvider` burada ilk kez bir serviste kullanıldı. Adım 14'te testler bunu `FakeTimeProvider` ile değiştirecek.
+**Neden böyle:** E-posta benzersizliği kategori adıyla aynı biçimde çözüldü: serviste `AnyAsync` ile kontrol, veritabanında `NOCASE` + unique index. Silme davranışı kitapla tutarlı: aktif ödünç varsa 409, sadece iade edilmiş geçmiş varsa geçmişle birlikte silinir.
+**Karşılaşılan hatalar:** Yok.
+**Bilerek boz:** `CreateMemberRequest`'e `DateTime CreatedAt` ekle ve `ToEntity` içinde istekten gelen değeri kullan. Sonra `"createdAt": "1990-01-01T00:00:00Z"` gönder. Neden bu bir güvenlik ya da veri bütünlüğü sorunu?
+**Kendini kontrol et:**
+- `CreatedAt` için neden `DateTime.UtcNow` yerine `TimeProvider` kullanılıyor?
+- `When(...)` olmasaydı telefonsuz bir üye eklenebilir miydi?
+- `AYSE.YILMAZ@example.com` neden `ayse.yilmaz@example.com` ile çakışıyor?
 
 ## Son Rapor
 <!-- Adım 16'da yazılır -->
