@@ -11,6 +11,8 @@ builder.Services.AddControllers(options =>
         options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
     // Enum'lar JSON'da sayı yerine adıyla yazılır: "status": "Overdue".
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// OpenAPI dokümanı şemaları bu ayarlardan üretir; enum'ların dokümanda da metin görünmesi için aynı dönüştürücü burada da eklenir.
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 builder.Services.AddApplicationServices(builder.Configuration);
 

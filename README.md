@@ -4,6 +4,8 @@
 
 Öğrenme amaçlı bir projedir. Her adımın açıklaması, yeni kavramlar ve alıştırmalar [`NOTLAR.md`](NOTLAR.md) dosyasındadır.
 
+![Kitaplar ekranı](docs/images/01-kitaplar.jpg)
+
 ## İçindekiler
 
 1. [Hızlı başlangıç](#1-hızlı-başlangıç)
@@ -144,6 +146,8 @@ POST  409  /api/loans
 
 Hatalar ayrıca ekranın altında kırmızı bir bildirimle gösterilir: `409 · Bu kitabın müsait kopyası yok.`
 
+<img src="docs/images/04-istek-defteri.png" alt="İstek defterinde açılmış 409 yanıtı" width="320">
+
 ### Kitaplar
 
 1. **Arama ve filtre:** "Ara" kutusuna başlık veya ISBN'in bir parçasını yaz (örn. `kar`, `97860`). Yazar, kategori, sıralama (başlık/yayın yılı), yön ve "Sadece rafta olanlar" seçenekleri listeyi anında günceller.
@@ -152,6 +156,8 @@ Hatalar ayrıca ekranın altında kırmızı bir bildirimle gösterilir: `409 ·
 4. **Ödünç ver:** Ayrıntı penceresinde üye seç ve "Ödünç ver"e bas. Bildirimde son iade tarihi (bugün + 14 gün) yazar.
 5. **Kitap ekle:** Sağ üstteki "Kitap ekle" düğmesi. ISBN tam 13 rakam olmalı; yazar seçmek zorunlu, kategoriler isteğe bağlı.
 6. **Düzenle / Sil:** Ayrıntı penceresindeki düğmeler. Ödünçteki kitap silinemez (409). Stok, ödünçteki kopya sayısının altına indirilemez (409).
+
+![Kitap ayrıntısı ve ödünç verme](docs/images/02-kitap-detayi.jpg)
 
 ### Ödünçler
 
@@ -163,11 +169,19 @@ Hatalar ayrıca ekranın altında kırmızı bir bildirimle gösterilir: `409 ·
 3. **Filtre:** Duruma ve üyeye göre süz. Örneğin "Gecikti" seçince sadece gecikmiş ödünçler kalır.
 4. **İade al:** Fişin sağındaki düğme. Zaten iade edilmiş ödünçte bu düğme görünmez.
 
+![Ödünçler ekranı: durum damgaları, İstek defteri ve 409 bildirimi](docs/images/03-oduncler-409.jpg)
+
+*Mehmet'e ödünç verilmeye çalışıldı: API 409 döndü, defterde `POST 409 /api/loans` satırı ve altta hata bildirimi görünüyor.*
+
 ### Üyeler, Yazarlar, Kategoriler
 
 - Tabloda kayıtlar listelenir. Sağ üstteki düğmeyle yeni kayıt eklenir; satırdaki "Düzenle" ve "Sil" düğmeleri kaydı değiştirir veya siler.
 - **Üyeler → "Ödünçleri":** Üyenin tüm ödünç geçmişini fişler halinde açar; buradan da iade alınabilir.
 - Formlarda tarayıcının kendi kontrolü bilerek kapalı. Boş ad veya hatalı e-posta girersen hatayı API verir (400) ve mesaj ilgili alanın altında görünür.
+
+![Üyeler ekranı](docs/images/05-uyeler.jpg)
+
+![Doğrulama hataları alanların altında (400)](docs/images/06-dogrulama-400.jpg)
 
 ### Kural testleri
 
@@ -176,6 +190,10 @@ Hatalar ayrıca ekranın altında kırmızı bir bildirimle gösterilir: `409 ·
 3. Her adımda yapılan istek, **beklenen** ve **gelen** durum kodu yazar. Senaryo sonunda **GEÇTİ**, **KALDI** veya **ATLANDI** damgası basılır; en üstte toplam sonuç görünür.
 4. Senaryolar kendi test yazarlarını, kitaplarını ve üyelerini oluşturur, bitince siler. Senin verilerin değişmez.
 5. Kural 5 (gecikme) için tarayıcıdan sunucunun saati ileri sarılamadığı için örnek verideki gecikmiş ödünç (Mehmet) kullanılır. O kayıt yoksa senaryo "Atlandı" olur; [verileri sıfırlarsan](#verileri-sıfırlama) geri gelir.
+
+![Kural testleri: 12 geçti](docs/images/07-kural-testleri.jpg)
+
+![Kural 5, 6 ve 7 adımları](docs/images/08-kural-testleri-ayrinti.jpg)
 
 ### 5 dakikalık deneme turu
 
@@ -485,6 +503,7 @@ Ayrıca ISBN, üye e-postası ve kategori adı benzersizdir (409). Müsait kopya
 Deneme/
 ├── KutuphaneApi.slnx         Çözüm dosyası (iki proje)
 ├── NOTLAR.md                 Adım adım öğrenme notları ve son rapor
+├── docs/images/              README ekran görüntüleri
 ├── .config/dotnet-tools.json dotnet-ef yerel aracı
 ├── KutuphaneApi/
 │   ├── Controllers/          HTTP katmanı: route, durum kodu
